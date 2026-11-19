@@ -1,0 +1,1049 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Park Stats</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Park Stats">
+<meta name="theme-color" content="#0d0b1a">
+<link rel="apple-touch-icon" href="icon.png">
+<link rel="icon" href="icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Monoton&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0d0b1a;--panel:#17142b;--panel2:#201c3a;--line:#2e2950;--text:#f3efff;--muted:#a59fc4;--accent:#ff4fa3;--accent2:#3de3ff;--gold:#ffd23f;--good:#5dff9d;--r:16px}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font-family:"Space Grotesk",system-ui,sans-serif;-webkit-tap-highlight-color:transparent}
+body{padding:env(safe-area-inset-top) env(safe-area-inset-right) calc(env(safe-area-inset-bottom) + 80px) env(safe-area-inset-left);background:radial-gradient(1200px 500px at 50% -200px,#3a1d5c55,transparent),var(--bg);min-height:100vh}
+header{padding:16px 16px 4px;text-align:center}
+h1{font-family:Monoton,cursive;font-weight:400;font-size:clamp(24px,8vw,34px);margin:0;background:linear-gradient(90deg,var(--accent),var(--gold),var(--accent2));-webkit-background-clip:text;background-clip:text;color:transparent}
+
+main{max-width:640px;margin:0 auto;padding:4px 14px}
+section{display:none}section.on{display:block}
+h2{font-size:13px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin:22px 4px 10px;font-weight:500;display:flex;justify-content:space-between;align-items:center;gap:8px}
+h3{font-size:16px;margin:0 0 8px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:14px}
+.card+.card{margin-top:10px}
+input,select,textarea{font:inherit;color:var(--text);background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;width:100%;min-width:0}
+textarea{min-height:90px;resize:vertical}
+input[type=date],input[type=time]{color-scheme:dark}
+label{font-size:13px;color:var(--muted);display:block;margin:12px 0 6px}
+.row{display:flex;gap:10px;align-items:center}
+.row>*{flex:1}
+.btn{font:inherit;font-weight:500;border-radius:12px;padding:11px 16px;border:1px solid var(--line);background:var(--panel2);color:var(--text);cursor:pointer}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:#1a0010}
+.btn.danger{color:#ff7a8a;border-color:#5a2533}
+.btn.sm{padding:7px 11px;font-size:13px;border-radius:10px}
+.btn.wide{width:100%}
+.x{background:none;border:0;color:var(--muted);font-size:22px;cursor:pointer;padding:2px 8px;line-height:1}
+.chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;font:inherit;font-size:13px;padding:7px 12px;border-radius:99px;border:1px solid var(--line);background:var(--panel);color:var(--muted);cursor:pointer}
+.chip.on{background:var(--text);color:var(--bg);border-color:var(--text)}
+.dot{width:12px;height:12px;border-radius:50%;flex:none;display:inline-block}
+.list .li{display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--line)}
+.list .li:last-child{border-bottom:0}
+.grow{flex:1;min-width:0}
+.t{font-size:12px;color:var(--muted)}
+.tag{font-size:11px;padding:2px 7px;border-radius:99px;background:var(--panel2);color:var(--muted);margin-left:6px;white-space:nowrap}
+.empty{color:var(--muted);text-align:center;padding:20px 10px;font-size:14px}
+.note{font-size:13px;color:var(--muted);line-height:1.5}
+.datebar{display:flex;align-items:center;gap:8px}
+.datebar .btn{flex:none;padding:10px 14px}
+.datebar .lbl{flex:1;text-align:center;font-weight:700;font-size:17px;position:relative}
+.datebar input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.rides{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.ridebtn{position:relative;text-align:left;padding:13px 12px;border-radius:14px;border:1px solid var(--line);background:var(--panel);color:var(--text);font:inherit;font-size:14px;font-weight:500;line-height:1.25;cursor:pointer;min-height:64px;transition:transform .08s}
+.ridebtn:active{transform:scale(.97);background:var(--panel2)}
+.ridebtn .k{display:block;font-size:11px;color:var(--muted);margin-top:4px;font-weight:400}
+.ridebtn .n{position:absolute;top:8px;right:8px;background:var(--accent);color:#1a0010;font-size:11px;font-weight:700;border-radius:99px;padding:1px 7px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:11px}
+.stat b{display:block;font-size:21px;line-height:1.2;word-break:break-word}
+.stat.sm b{font-size:17px}
+.stat span{font-size:11px;color:var(--muted)}
+.bar{margin:10px 0}
+.bar .top{display:flex;justify-content:space-between;font-size:14px;margin-bottom:5px;gap:8px}
+.bar .top span:last-child{color:var(--muted);white-space:nowrap}
+.track{height:10px;background:var(--panel2);border-radius:99px;overflow:hidden}
+.fill{height:100%;border-radius:99px}
+.trend{display:flex;flex-direction:column;gap:7px}
+.trow{display:grid;grid-template-columns:92px 1fr 30px;gap:8px;align-items:center;font-size:12px}
+.trow .lbl{color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stack{display:flex;height:16px;border-radius:5px;overflow:hidden;background:var(--panel2)}
+.trow .n{text-align:right;color:var(--muted)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 12px;font-size:12px;color:var(--muted);margin-bottom:10px}
+.legend i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px}
+.big{font-size:34px;font-weight:700;line-height:1.1}
+.prog{height:8px;background:var(--panel2);border-radius:99px;overflow:hidden;margin:10px 0 4px}
+.prog div{height:100%;background:linear-gradient(90deg,var(--accent),var(--gold))}
+.toggle{display:flex;align-items:center;gap:10px;font-size:14px}
+.toggle input{width:22px;height:22px;accent-color:var(--accent)}
+.feat{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--line);cursor:pointer}
+.feat:last-of-type{border-bottom:0}
+.feat .grow div:first-child{font-size:15px}
+.sw{position:relative;width:48px;height:28px;flex:none}
+.sw input{opacity:0;width:0;height:0;position:absolute}
+.sw span{position:absolute;inset:0;background:var(--panel2);border:1px solid var(--line);border-radius:99px;transition:.2s}
+.sw span::before{content:"";position:absolute;width:22px;height:22px;left:2px;top:2px;background:var(--muted);border-radius:50%;transition:.2s}
+.sw input:checked+span{background:var(--accent);border-color:var(--accent)}
+.sw input:checked+span::before{transform:translateX(20px);background:#fff}
+.jentry{white-space:pre-wrap;line-height:1.5;margin-top:6px}
+.stars{color:var(--gold);letter-spacing:1px}
+.bar.tap{cursor:pointer}.bar.tap .top span:first-child::after{content:" ›";color:var(--muted)}
+.cmp{font-size:12px;margin-top:8px;color:var(--muted);line-height:1.6}
+.up{color:var(--good)}.down{color:#ff7a8a}
+.recs{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.rec{background:var(--panel2);border-radius:12px;padding:10px 11px}
+.rec b{display:block;font-size:17px}.rec span{font-size:11px;color:var(--muted)}
+.cols{display:flex;align-items:flex-end;gap:3px;height:110px;margin-top:6px}
+.cols .c{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%}
+.cols .c i{display:block;width:100%;border-radius:4px 4px 0 0;background:var(--accent2);min-height:2px}
+.cols .c em{font-style:normal;font-size:9px;color:var(--muted);margin-top:4px;white-space:nowrap}
+.cols .c u{text-decoration:none;font-size:9px;color:var(--text);margin-bottom:2px}
+details.more summary{list-style:none;cursor:pointer;color:var(--accent2);font-size:14px;padding:4px 0}
+details.more summary::-webkit-details-marker{display:none}
+nav{position:fixed;left:0;right:0;bottom:0;display:flex;background:#100d22ee;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom);z-index:5}
+nav button{flex:1;min-width:0;background:none;border:0;color:var(--muted);font:inherit;font-size:10.5px;padding:9px 0 11px;cursor:pointer}
+nav button .ic{display:block;font-size:20px;margin-bottom:2px}
+nav button.on{color:var(--accent)}
+#toast{position:fixed;left:50%;bottom:calc(92px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(20px);opacity:0;pointer-events:none;background:var(--text);color:var(--bg);padding:11px 14px 11px 16px;border-radius:12px;font-size:14px;display:flex;gap:14px;align-items:center;transition:.2s;z-index:30;max-width:92vw}
+#toast.show{opacity:1;transform:translateX(-50%);pointer-events:auto}
+#toast button{background:none;border:0;color:var(--accent);font:inherit;font-weight:700;cursor:pointer}
+#sheet{position:fixed;inset:0;background:#000a;display:none;align-items:flex-end;justify-content:center;z-index:20}
+#sheet.show{display:flex}
+.sheet-card{background:var(--panel);border:1px solid var(--line);border-bottom:0;border-radius:20px 20px 0 0;width:100%;max-width:640px;max-height:88vh;overflow:auto;padding:16px 16px calc(20px + env(safe-area-inset-bottom))}
+.sheet-h{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.sheet-h b{font-size:18px}
+.opt{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:14px;margin-top:8px;border-radius:14px;border:1px solid var(--line);background:var(--panel2);color:var(--text);font:inherit;cursor:pointer}
+.opt .a{color:var(--muted);font-size:12px}
+.btnrow{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap}
+.btnrow .btn{flex:1}
+</style>
+</head>
+<body>
+<header>
+  <h1>Park Stats</h1>
+</header>
+
+<main>
+  <section id="v-today" class="on">
+    <div class="datebar" style="margin-top:10px">
+      <button class="btn" data-act="day" data-n="-1">‹</button>
+      <div class="lbl"><span id="dayLbl"></span><input type="date" id="dayPick" aria-label="Pick date"></div>
+      <button class="btn" data-act="day" data-n="1">›</button>
+    </div>
+    <div class="stats" id="todayTiles" style="margin-top:12px;grid-template-columns:1fr 1fr">
+      <div class="stat"><b id="tRides">0</b><span>rides</span></div>
+      <div class="stat" id="tStepsTile"><b><input id="tSteps" type="number" inputmode="numeric" placeholder="0" style="padding:0;border:0;background:none;font-size:21px;font-weight:700"></b><span>steps (tap to enter)</span></div>
+      <div class="stat" id="tHoursTile"><b id="tHours">–</b><span>hours in parks</span></div>
+      <div class="stat" id="tCostTile"><b id="tPass">–</b><span id="tPassL">cost / day</span></div>
+    </div>
+    <div id="visitsWrap"><h2>Park visits</h2>
+    <div class="card"><div class="list" id="visitList"></div><div class="btnrow" id="visitBtns" style="margin-top:10px"></div></div></div>
+    <h2>What did you ride?</h2>
+    <div class="chips" id="parkChips"></div>
+    <div class="rides" id="rideBtns" style="margin-top:10px"></div>
+    <h2>Rides this day</h2>
+    <div class="card"><div class="list" id="dayList"></div>
+      <div class="toggle" style="margin-top:10px;border-top:1px solid var(--line);padding-top:12px"><input type="checkbox" id="parkDay"><label for="parkDay" style="margin:0;color:var(--text)" id="parkDayLbl">Count as a park day</label></div>
+    </div>
+    <button class="btn wide" id="momentBtn" style="margin-top:12px" data-act="tab" data-v="journal" data-new="1">✨ Add a magical moment</button>
+  </section>
+
+  <section id="v-stats">
+    <h2>Time period</h2>
+    <div class="chips" id="periodChips"></div>
+    <div class="row" id="customRange" style="display:none;margin-top:8px">
+      <div><label>From</label><input type="date" id="from"></div>
+      <div><label>To</label><input type="date" id="to"></div>
+    </div>
+    <div class="stats" style="margin-top:12px" id="statTiles"></div>
+    <div id="statBody"></div>
+  </section>
+
+  <section id="v-pass"><div id="passBody"></div></section>
+  <section id="v-hotels"><div id="hotelBody"></div></section>
+
+  <section id="v-journal">
+    <h2>New magical moment</h2>
+    <div class="card">
+      <div class="row"><div><label style="margin-top:0">Date</label><input type="date" id="jDate"></div><div><label style="margin-top:0">Park (optional)</label><select id="jPark"></select></div></div>
+      <label>What happened?</label>
+      <textarea id="jText" placeholder="The fireworks lined up perfectly with the moon…"></textarea>
+      <button class="btn pri wide" style="margin-top:12px" data-act="jAdd">Save moment</button>
+    </div>
+    <h2>Your moments <span id="jCount"></span></h2>
+    <input id="jSearch" placeholder="Search moments" style="margin-bottom:10px">
+    <div id="jList"></div>
+  </section>
+
+  <section id="v-set"><div id="setBody"></div></section>
+</main>
+
+<nav>
+  <button data-act="tab" data-v="today" class="on"><span class="ic">🎢</span>Today</button>
+  <button data-act="tab" data-v="stats"><span class="ic">📊</span>Stats</button>
+  <button data-act="tab" data-v="pass" id="navCost"><span class="ic">🎟️</span><span id="navCostL">Pass</span></button>
+  <button data-act="tab" data-v="hotels" id="navHotels"><span class="ic">🏨</span>Hotels</button>
+  <button data-act="tab" data-v="journal" id="navJournal"><span class="ic">✨</span>Journal</button>
+  <button data-act="tab" data-v="set"><span class="ic">⚙️</span>Settings</button>
+</nav>
+
+<div id="toast"><span id="toastMsg"></span><button id="toastBtn"></button></div>
+<div id="sheet"><div class="sheet-card"><div class="sheet-h"><b id="sheetTitle"></b><button class="x" data-act="closeSheet" aria-label="Close">×</button></div><div id="sheetBody"></div></div></div>
+<input type="file" id="fileIn" accept=".json,application/json,text/plain" hidden>
+
+<script>
+(() => {
+"use strict";
+const KEY = "parkStats.v2", OLD_KEY = "cosmicSongTracker.v1";
+const COLORS = ["#ff4fa3","#3de3ff","#ffd23f","#5dff9d","#b78cff","#ff8a3d","#4f8bff","#ff5f5f","#c6ff3d","#3dffd0","#ff9be0","#9aa7ff"];
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const pad = n => String(n).padStart(2, "0");
+const ymd = d => d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
+const pd = s => new Date(s + "T00:00");
+const today = () => ymd(new Date());
+const addDays = (s, n) => { const d = pd(s); d.setDate(d.getDate() + n); return ymd(d); };
+const daysBetween = (a, b) => Math.round((pd(b) - pd(a)) / 86400000);
+const money = n => "$" + (Math.round(n * 100) / 100).toLocaleString(undefined, { minimumFractionDigits: n < 100 ? 2 : 0, maximumFractionDigits: n < 100 ? 2 : 0 });
+const num = n => Math.round(n).toLocaleString();
+const dLabel = (s, o) => pd(s).toLocaleDateString([], o || { weekday: "short", month: "short", day: "numeric", year: pd(s).getFullYear() !== new Date().getFullYear() ? "numeric" : undefined });
+const tLabel = t => new Date(t).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+
+/* ---------- defaults ---------- */
+function song(id, name, artist, i){ return { id, name, artist, retired: false, color: COLORS[i % COLORS.length] }; }
+function defaults(){
+  const parks = [
+    { id: "mk", name: "Magic Kingdom", color: "#ff4fa3" },
+    { id: "ep", name: "EPCOT", color: "#3de3ff" },
+    { id: "hs", name: "Hollywood Studios", color: "#ffd23f" },
+    { id: "ak", name: "Animal Kingdom", color: "#5dff9d" },
+  ];
+  const R = (id, name, park, kind, songs) => ({ id, name, park, kind: kind || "plain", retired: false, songs: songs || [] });
+  const rides = [
+    R("tron","TRON Lightcycle / Run","mk"), R("space","Space Mountain","mk"), R("btm","Big Thunder Mountain","mk"),
+    R("7dmt","Seven Dwarfs Mine Train","mk"), R("tiana","Tiana's Bayou Adventure","mk"), R("hm","Haunted Mansion","mk"),
+    R("potc","Pirates of the Caribbean","mk"), R("jungle","Jungle Cruise","mk"), R("peter","Peter Pan's Flight","mk"),
+    R("buzz","Buzz Lightyear's Space Ranger Spin","mk","score"), R("smallworld","it's a small world","mk"),
+    R("pooh","Winnie the Pooh","mk"), R("mermaid","Under the Sea (Little Mermaid)","mk"), R("peoplemover","PeopleMover","mk"),
+    R("dumbo","Dumbo","mk"), R("teacups","Mad Tea Party","mk"), R("astro","Astro Orbiter","mk"),
+    R("gotg","Guardians: Cosmic Rewind","ep","song",[
+      song("s0","September","Earth, Wind & Fire",0), song("s1","Conga","Gloria Estefan & Miami Sound Machine",1),
+      song("s2","I Ran (So Far Away)","A Flock of Seagulls",2), song("s3","Disco Inferno","The Trammps",3),
+      song("s4","Everybody Wants to Rule the World","Tears for Fears",4), song("s5","One Way or Another","Blondie",5)]),
+    R("testtrack","Test Track","ep"), R("frozen","Frozen Ever After","ep"), R("remy","Remy's Ratatouille Adventure","ep"),
+    R("soarin","Soarin'","ep"), R("sse","Spaceship Earth","ep"), R("mission","Mission: SPACE","ep"),
+    R("nemo","The Seas with Nemo & Friends","ep"), R("land","Living with the Land","ep"), R("granfiesta","Gran Fiesta Tour","ep"),
+    R("rnrc","Rock 'n' Roller Coaster (Muppets)","hs","song",[
+      song("m0","Song 2","The Electric Mayhem",0), song("m1","Born to Be Wild","The Electric Mayhem ft. Camilla the Chicken",1),
+      song("m2","Love Rollercoaster","ft. Jennifer Hudson & Questlove",2), song("m3","Rock! Rock! (Till You Drop)","ft. Def Leppard",3),
+      song("m4","Walking on Sunshine","ft. Kelly Clarkson",4)]),
+    R("tsm","Toy Story Mania!","hs","score"), R("rotr","Rise of the Resistance","hs"), R("smugglers","Smugglers Run","hs"),
+    R("tot","Tower of Terror","hs"), R("slinky","Slinky Dog Dash","hs"), R("runaway","Runaway Railway","hs"),
+    R("saucers","Alien Swirling Saucers","hs"),
+    R("fop","Avatar Flight of Passage","ak"), R("everest","Expedition Everest","ak"), R("safari","Kilimanjaro Safaris","ak"),
+    R("navi","Na'vi River Journey","ak"), R("kali","Kali River Rapids","ak"),
+  ];
+  return { v: 2, parks, rides, log: [], days: {}, passes: [], tickets: [], stays: [], journal: [], costMode: "pass" };
+}
+
+/* ---------- load / save ---------- */
+function valid(o){ return o && o.v === 2 && Array.isArray(o.parks) && Array.isArray(o.rides) && Array.isArray(o.log); }
+function normalize(o){
+  o.days = o.days && typeof o.days === "object" ? o.days : {};
+  if (!["pass","tickets","off"].includes(o.costMode)) o.costMode = "pass";
+  if (!o.features || typeof o.features !== "object") o.features = {};
+  ["passes","tickets","stays","journal"].forEach(k => { if (!Array.isArray(o[k])) o[k] = []; });
+  o.rides.forEach(r => { if (!Array.isArray(r.songs)) r.songs = []; });
+  return o;
+}
+let S = null;
+try { const o = JSON.parse(localStorage.getItem(KEY)); if (valid(o)) S = normalize(o); } catch (e) {}
+const firstRun = !S;
+if (!S) S = defaults();
+function save(){ try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { toast("Couldn't save — phone storage may be full"); } render(); }
+try { navigator.storage && navigator.storage.persist && navigator.storage.persist(); } catch (e) {}
+
+/* ---------- lookups ---------- */
+const FEATURES = [
+  ["visits","⏱️ Park arrive & leave times","Hours per park, cost per hour, typical arrival"],
+  ["steps","👟 Steps","Daily step count and step stats"],
+  ["songs","🎵 Song picking","Ask which song played on song rides"],
+  ["scores","🎯 Score entry","Ask for your score on score rides"],
+  ["hotels","🏨 Hotels","Hotel stays tab"],
+  ["journal","✨ Journal","Magical moments tab"],
+];
+const F = k => !(S.features && S.features[k] === false);
+const kindOf = r => (r.kind === "song" && !F("songs")) || (r.kind === "score" && !F("scores")) ? "plain" : r.kind;
+const park = id => S.parks.find(p => p.id === id) || { id, name: "Other", color: "#888" };
+const ride = id => S.rides.find(r => r.id === id) || { id, name: "Unknown ride", park: "", kind: "plain", songs: [] };
+const songOf = (r, sid) => r.songs.find(s => s.id === sid);
+const hasRides = d => S.log.some(e => e.d === d);
+const visitsOf = d => (S.days[d] && Array.isArray(S.days[d].visits)) ? S.days[d].visits : [];
+const toMin = t => { const m = /^(\d{1,2}):(\d{2})/.exec(t || ""); return m ? (+m[1]) * 60 + (+m[2]) : null; };
+const visitMins = v => { const a = toMin(v.in), b = toMin(v.out); return a != null && b != null && b > a ? b - a : 0; };
+const hoursOf = d => visitsOf(d).reduce((s, v) => s + visitMins(v), 0) / 60;
+const fmtH = h => { const m = Math.round(h * 60); return Math.floor(m / 60) + "h" + (m % 60 ? " " + pad(m % 60) + "m" : ""); };
+const fmtClock = t => { const m = toMin(t); if (m == null) return "?"; const d = new Date(2000, 0, 1, Math.floor(m / 60), m % 60); return d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }); };
+const nowHM = () => { const n = new Date(); return pad(n.getHours()) + ":" + pad(n.getMinutes()); };
+const dayEmpty = d => !d || (!d.visit && !d.steps && !(d.visits && d.visits.length));
+function setVisits(d, list){ S.days[d] = Object.assign({}, S.days[d], { visits: list }); if (dayEmpty(S.days[d])) delete S.days[d]; save(); }
+function visitForm(i){
+  const vs = visitsOf(curDay).slice(), isNew = i == null;
+  const v = isNew ? { park: curPark, in: "", out: "" } : vs[i];
+  openForm(isNew ? "Park visit" : "Edit visit", [
+    { k: "park", label: "Park", type: "select", value: v.park, options: parkOptions() },
+    { k: "in", label: "Arrived", type: "time", value: v.in, req: true },
+    { k: "out", label: "Left (blank if you're still there)", type: "time", value: v.out },
+  ], val => {
+    if (val.out && toMin(val.out) <= toMin(val.in)) { toast("Leaving time must be after arriving"); return false; }
+    const nv = { park: val.park, in: val.in, out: val.out };
+    if (isNew) vs.push(nv); else vs[i] = nv;
+    vs.sort((x, y) => toMin(x.in) - toMin(y.in)); setVisits(curDay, vs);
+  }, { focus: false, onDelete: isNew ? null : () => { vs.splice(i, 1); setVisits(curDay, vs); }, deleteMsg: "Delete this visit?" });
+}
+const isParkDay = d => hasRides(d) || !!(S.days[d] && (S.days[d].visit || S.days[d].steps > 0 || visitsOf(d).length));
+function parkDaysIn(a, b){
+  const set = new Set();
+  S.log.forEach(e => { if (e.d >= a && e.d <= b) set.add(e.d); });
+  Object.keys(S.days).forEach(d => { if (d >= a && d <= b && isParkDay(d)) set.add(d); });
+  return set;
+}
+function currentPass(){
+  const t = today();
+  const act = S.passes.filter(p => p.start <= t && p.end >= t).sort((a, b) => b.start.localeCompare(a.start))[0];
+  return act || S.passes.slice().sort((a, b) => b.end.localeCompare(a.end))[0] || null;
+}
+function passStats(p){
+  const days = parkDaysIn(p.start, p.end).size;
+  const rides = S.log.filter(e => e.d >= p.start && e.d <= p.end).length;
+  const cost = +p.cost || 0;
+  let hours = 0, hoursDays = 0;
+  Object.keys(S.days).forEach(d => { const h = hoursOf(d); if (d >= p.start && d <= p.end && h > 0) { hours += h; hoursDays++; } });
+  return { days, rides, cost, hours, hoursDays, perDay: days ? cost / days : null, perRide: rides ? cost / rides : null, perHour: hours ? cost / hours : null };
+}
+
+/* ---------- UI helpers ---------- */
+let toastTimer;
+function toast(msg, label, fn){
+  $("toastMsg").textContent = msg;
+  const b = $("toastBtn"); b.textContent = label || ""; b.style.display = label ? "" : "none";
+  b.onclick = () => { $("toast").classList.remove("show"); fn && fn(); };
+  $("toast").classList.add("show"); clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => $("toast").classList.remove("show"), 4500);
+}
+function openSheet(title, html){ $("sheetTitle").textContent = title; $("sheetBody").innerHTML = html; $("sheet").classList.add("show"); return $("sheetBody"); }
+function closeSheet(){ $("sheet").classList.remove("show"); $("sheetBody").innerHTML = ""; }
+$("sheet").addEventListener("click", e => { if (e.target.id === "sheet") closeSheet(); });
+
+function confirmBox(msg, label, fn){
+  const b = openSheet("Are you sure?", `<p class="note" style="font-size:15px;color:var(--text)">${esc(msg)}</p>
+    <div class="btnrow"><button class="btn" data-act="closeSheet">Cancel</button><button class="btn danger" id="cfOk">${esc(label)}</button></div>`);
+  b.querySelector("#cfOk").onclick = () => { closeSheet(); fn(); };
+}
+/* fields: {k,label,type,value,options,placeholder,list,req} */
+function openForm(title, fields, onSave, opts){
+  opts = opts || {};
+  const html = fields.map(f => {
+    const v = f.value == null ? "" : f.value, ph = esc(f.placeholder || "");
+    let input;
+    if (f.type === "select") input = `<select name="${f.k}">${f.options.map(([ov, ol]) => `<option value="${esc(ov)}" ${String(ov) === String(v) ? "selected" : ""}>${esc(ol)}</option>`).join("")}</select>`;
+    else if (f.type === "textarea") input = `<textarea name="${f.k}" placeholder="${ph}">${esc(v)}</textarea>`;
+    else input = `<input name="${f.k}" type="${f.type || "text"}" value="${esc(v)}" placeholder="${ph}" ${f.type === "number" ? 'inputmode="decimal" step="any"' : ""} ${f.list ? `list="${f.list}"` : ""}>`;
+    return `<label>${esc(f.label)}</label>${input}`;
+  }).join("") + (opts.extraHtml || "") +
+    `<div class="btnrow">${opts.onDelete ? '<button class="btn danger" id="fDel">Delete</button>' : ""}<button class="btn pri" id="fSave">${esc(opts.saveLabel || "Save")}</button></div>`;
+  const body = openSheet(title, html);
+  const first = body.querySelector("input,textarea,select"); if (first && opts.focus !== false) setTimeout(() => first.focus(), 50);
+  body.querySelector("#fSave").onclick = () => {
+    const vals = {}; fields.forEach(f => { vals[f.k] = body.querySelector(`[name="${f.k}"]`).value.trim(); });
+    const missing = fields.find(f => f.req && !vals[f.k]);
+    if (missing) { body.querySelector(`[name="${missing.k}"]`).focus(); return; }
+    if (onSave(vals) !== false) closeSheet();
+  };
+  if (opts.onDelete) body.querySelector("#fDel").onclick = () => confirmBox(opts.deleteMsg || "Delete this?", "Delete", opts.onDelete);
+  return body;
+}
+function chips(el, items, cur, act){
+  el.innerHTML = items.map(([k, l]) => `<button class="chip ${String(k) === String(cur) ? "on" : ""}" data-act="${act}" data-k="${esc(k)}">${esc(l)}</button>`).join("");
+}
+const parkOptions = blank => (blank ? [["", blank]] : []).concat(S.parks.map(p => [p.id, p.name]));
+
+/* ---------- state for views ---------- */
+let tab = "today", curDay = today(), curPark = null, period = "30d", group = "month";
+try { curPark = localStorage.getItem(KEY + ".park"); } catch (e) {}
+const allTimeStart = () => [S.log[0] && S.log.reduce((m, e) => e.d < m ? e.d : m, S.log[0].d), Object.keys(S.days).sort()[0], today()].filter(Boolean).sort()[0];
+
+/* ---------- logging ---------- */
+function addLog(rideId, extra){
+  const now = new Date();
+  const t = curDay === today() ? now.getTime() : pd(curDay).getTime() + (now.getHours() * 60 + now.getMinutes()) * 60000;
+  const e = Object.assign({ id: uid(), t, d: curDay, r: rideId }, extra || {});
+  S.log.push(e); save();
+  try { navigator.vibrate && navigator.vibrate(25); } catch (err) {}
+  const r = ride(rideId), sg = e.song ? songOf(r, e.song) : null;
+  toast("Logged " + (sg ? sg.name : r.name) + (e.score != null ? " · " + num(e.score) : ""), "Undo", () => { S.log = S.log.filter(x => x.id !== e.id); save(); });
+}
+function tapRide(id){
+  const r = ride(id);
+  const kind = kindOf(r);
+  if (kind === "song") {
+    const songs = r.songs.filter(s => !s.retired);
+    const body = openSheet(r.name, `<p class="note" style="margin:4px 0 0">Which song did you get?</p>` +
+      songs.map(s => `<button class="opt" data-sid="${esc(s.id)}"><span class="dot" style="background:${s.color}"></span><span><div>${esc(s.name)}</div><div class="a">${esc(s.artist)}</div></span></button>`).join("") +
+      `<button class="opt" data-sid="" style="justify-content:center;color:var(--muted)">Didn't catch it — just log the ride</button>`);
+    body.querySelectorAll(".opt").forEach(b => b.onclick = () => { closeSheet(); addLog(id, b.dataset.sid ? { song: b.dataset.sid } : {}); });
+  } else if (kind === "score") {
+    const best = Math.max(0, ...S.log.filter(e => e.r === id && e.score != null).map(e => e.score));
+    openForm(r.name + " score", [{ k: "score", label: "Your score" + (best ? " (best so far: " + num(best) + ")" : ""), type: "number", placeholder: "Leave blank if you didn't see it" }],
+      v => { const n = v.score === "" ? null : Math.round(+v.score); if (n != null && !isFinite(n)) return false; addLog(id, n != null ? { score: n } : {}); if (n && n > best && best) setTimeout(() => toast("🏆 New personal best!"), 600); },
+      { saveLabel: "Log ride" });
+  } else addLog(id);
+}
+
+/* ---------- renderers ---------- */
+function renderToday(){
+  $("dayLbl").textContent = curDay === today() ? "Today · " + dLabel(curDay, { month: "short", day: "numeric" }) : dLabel(curDay);
+  $("dayPick").value = curDay;
+  const entries = S.log.filter(e => e.d === curDay).sort((a, b) => b.t - a.t);
+  $("tRides").textContent = entries.length;
+  if (document.activeElement !== $("tSteps")) $("tSteps").value = S.days[curDay] && S.days[curDay].steps ? S.days[curDay].steps : "";
+  const hd = hoursOf(curDay); $("tHours").textContent = hd ? fmtH(hd) : "–";
+  $("tStepsTile").style.display = F("steps") ? "" : "none";
+  $("tHoursTile").style.display = F("visits") ? "" : "none";
+  $("visitsWrap").style.display = F("visits") ? "" : "none";
+  $("momentBtn").style.display = F("journal") ? "" : "none";
+  const nTiles = 1 + F("steps") + F("visits") + (S.costMode !== "off");
+  $("todayTiles").style.gridTemplateColumns = nTiles === 3 ? "1fr 1fr 1fr" : nTiles === 1 ? "1fr" : "1fr 1fr";
+  const vs = visitsOf(curDay), open = vs.find(v => !v.out);
+  $("visitList").innerHTML = vs.length ? vs.map((v, i) => `<div class="li"><span class="dot" style="background:${park(v.park).color}"></span><div class="grow"><div>${esc(park(v.park).name)}</div>
+      <div class="t">${fmtClock(v.in)} – ${v.out ? fmtClock(v.out) + " · " + fmtH(visitMins(v) / 60) : "still here"}</div></div>
+      <button class="btn sm" data-act="visitEdit" data-i="${i}">Edit</button></div>`).join("") : `<div class="t" style="padding:2px 0 4px">Tap when you arrive and leave each park to track your hours.</div>`;
+  const isToday = curDay === today();
+  $("visitBtns").innerHTML = (open && isToday ? `<button class="btn pri" data-act="visitLeave">🚪 Leaving ${esc(park(open.park).name)} now</button>`
+    : (!open && isToday && curPark ? `<button class="btn pri" data-act="visitArrive">📍 Arrived at ${esc(park(curPark).name)} now</button>` : "")) +
+    `<button class="btn" data-act="visitAdd">+ Enter times</button>`;
+  $("tCostTile").style.display = S.costMode === "off" ? "none" : "";
+  if (S.costMode === "tickets") {
+    const tk = S.tickets.find(x => x.start <= curDay && x.end >= curDay);
+    if (tk) { const ts = passStats(tk); $("tPass").textContent = ts.perRide != null ? money(ts.perRide) : money(ts.cost); $("tPassL").textContent = ts.perRide != null ? "ticket cost / ride" : "ticket (no rides yet)"; }
+    else { $("tPass").textContent = "–"; $("tPassL").textContent = "no ticket for this day"; }
+  } else {
+    const cp = currentPass();
+    if (cp) { const ps = passStats(cp); $("tPass").textContent = ps.perDay != null ? money(ps.perDay) : money(ps.cost); $("tPassL").textContent = ps.perDay != null ? "pass cost / day" : "pass (no days yet)"; }
+    else { $("tPass").textContent = "–"; $("tPassL").textContent = "add pass in Pass tab"; }
+  }
+
+  if (!S.parks.some(p => p.id === curPark)) curPark = S.parks[0] ? S.parks[0].id : null;
+  chips($("parkChips"), S.parks.map(p => [p.id, p.name]), curPark, "park");
+  const dayCounts = {}; entries.forEach(e => dayCounts[e.r] = (dayCounts[e.r] || 0) + 1);
+  const rs = S.rides.filter(r => r.park === curPark && !r.retired);
+  $("rideBtns").innerHTML = rs.length ? rs.map(r => `<button class="ridebtn" data-act="ride" data-id="${esc(r.id)}">${esc(r.name)}
+      ${kindOf(r) === "song" ? '<span class="k">🎵 pick the song</span>' : kindOf(r) === "score" ? '<span class="k">🎯 add score</span>' : ""}
+      ${dayCounts[r.id] ? `<span class="n">${dayCounts[r.id]}</span>` : ""}</button>`).join("")
+    : `<div class="empty" style="grid-column:1/-1">No rides for this park yet. Add some in ⚙️ Settings.</div>`;
+
+  $("dayList").innerHTML = entries.length ? entries.map(e => {
+    const r = ride(e.r), sg = e.song ? songOf(r, e.song) : null;
+    return `<div class="li"><span class="dot" style="background:${park(r.park).color}"></span><div class="grow"><div>${esc(r.name)}</div>
+      <div class="t">${tLabel(e.t)}${sg ? " · 🎵 " + esc(sg.name) : ""}${e.score != null ? " · 🎯 " + num(e.score) : ""}</div></div>
+      <button class="x" data-act="delLog" data-id="${esc(e.id)}" aria-label="Delete">×</button></div>`;
+  }).join("") : `<div class="empty">Nothing logged ${curDay === today() ? "yet today" : "this day"}.</div>`;
+  const auto = entries.length > 0;
+  $("parkDay").checked = isParkDay(curDay); $("parkDay").disabled = auto;
+  $("parkDayLbl").textContent = auto ? "Park day ✓ (counted automatically)" : "Count as a park day (no rides logged)";
+}
+
+function periodRange(){
+  const t = today(), d = new Date();
+  if (period === "7d") return [addDays(t, -6), t];
+  if (period === "30d") return [addDays(t, -29), t];
+  if (period === "month") return [ymd(new Date(d.getFullYear(), d.getMonth(), 1)), t];
+  if (period === "year") return [d.getFullYear() + "-01-01", t];
+  if (period === "pass") { const p = currentPass(); return p ? [p.start, p.end] : ["0000-01-01", "9999-12-31"]; }
+  if (period === "custom") return [$("from").value || "0000-01-01", $("to").value || "9999-12-31"];
+  return ["0000-01-01", "9999-12-31"];
+}
+function prevRange(a, b){
+  const t = today(), d = new Date();
+  if (period === "7d" || period === "30d") { const n = period === "7d" ? 7 : 30; return [addDays(a, -n), addDays(a, -1), "previous " + n + " days"]; }
+  if (period === "month") { const pm = new Date(d.getFullYear(), d.getMonth() - 1, 1); const pend = new Date(d.getFullYear(), d.getMonth(), 0); const sameDay = ymd(new Date(pm.getFullYear(), pm.getMonth(), Math.min(d.getDate(), pend.getDate()))); return [ymd(pm), sameDay, "same point last month"]; }
+  if (period === "year") return [(d.getFullYear() - 1) + "-01-01", (d.getFullYear() - 1) + t.slice(4), "same point last year"];
+  return null;
+}
+function rideInfo(id){
+  const r = ride(id), E = S.log.filter(e => e.r === id).sort((x, y) => x.t - y.t);
+  if (!E.length) return;
+  const days = {}; E.forEach(e => days[e.d] = (days[e.d] || 0) + 1);
+  const dk = Object.keys(days), maxD = dk.sort((x, y) => days[y] - days[x])[0];
+  const months = {}; E.forEach(e => months[e.d.slice(0, 7)] = (months[e.d.slice(0, 7)] || 0) + 1);
+  const mk = Object.keys(months).sort().reverse().slice(0, 12);
+  const totalDays = parkDaysIn("0000-01-01", "9999-12-31").size;
+  const hrsInPark = Object.keys(S.days).reduce((s, d) => s + visitsOf(d).filter(v => v.park === r.park).reduce((x, v) => x + visitMins(v) / 60, 0), 0);
+  let extra = "";
+  if (r.kind === "song" && F("songs")) { const c = {}; E.forEach(e => { if (e.song) c[e.song] = (c[e.song] || 0) + 1; }); const tot = Object.values(c).reduce((s, n) => s + n, 0);
+    extra = `<h2>Songs (all time)</h2>${bars(r.songs.filter(sg => c[sg.id] || !sg.retired).sort((x, y) => (c[y.id] || 0) - (c[x.id] || 0)).map(sg => ({ label: esc(sg.name), n: c[sg.id] || 0, color: sg.color })), tot)}`; }
+  if (r.kind === "score" && F("scores")) { const v = E.filter(e => e.score != null).map(e => e.score); if (v.length) extra = `<h2>Scores (all time)</h2><div class="recs"><div class="rec"><b style="color:var(--gold)">${num(Math.max(...v))}</b><span>best</span></div><div class="rec"><b>${num(v.reduce((s, x) => s + x, 0) / v.length)}</b><span>average of ${v.length}</span></div></div>`; }
+  openSheet(r.name, `<div class="t" style="color:${park(r.park).color}">${esc(park(r.park).name)}</div>
+    <div class="recs" style="margin-top:12px">
+      <div class="rec"><b>${E.length}</b><span>total rides</span></div>
+      <div class="rec"><b>${dk.length}</b><span>days ridden${totalDays ? " · " + Math.round(dk.length / totalDays * 100) + "% of park days" : ""}</span></div>
+      <div class="rec"><b>${dLabel(E[0].d, { month: "short", day: "numeric", year: "numeric" })}</b><span>first ride</span></div>
+      <div class="rec"><b>${dLabel(E[E.length - 1].d, { month: "short", day: "numeric", year: "numeric" })}</b><span>last ride · ${daysBetween(E[E.length - 1].d, today())} days ago</span></div>
+      <div class="rec"><b>${days[maxD]}×</b><span>most in one day · ${dLabel(maxD, { month: "short", day: "numeric" })}</span></div>
+      <div class="rec"><b>${(E.length / dk.length).toFixed(1)}</b><span>rides per day you ride it</span></div>
+    </div>${extra}
+    <h2>By month</h2>${bars(mk.map(m => ({ label: pd(m + "-01").toLocaleDateString([], { month: "short", year: "numeric" }), n: months[m], color: park(r.park).color })))}`);
+}
+function bucket(dstr){
+  if (group === "day") return dstr;
+  if (group === "week") { const x = pd(dstr); x.setDate(x.getDate() - x.getDay()); return ymd(x); }
+  if (group === "month") return dstr.slice(0, 7);
+  return dstr.slice(0, 4);
+}
+function bucketLabel(k){
+  if (group === "day") return dLabel(k, { weekday: "short", month: "short", day: "numeric" });
+  if (group === "week") return "Wk " + dLabel(k, { month: "short", day: "numeric" });
+  if (group === "month") return pd(k + "-01").toLocaleDateString([], { month: "short", year: "numeric" });
+  return k;
+}
+function bars(items, total){
+  const max = Math.max(1, ...items.map(i => i.n));
+  return items.map(i => `<div class="bar${i.tap ? " tap" : ""}" ${i.tap ? `data-act="rideInfo" data-id="${esc(i.tap)}"` : ""}><div class="top"><span>${i.label}</span><span>${i.right != null ? i.right : num(i.n) + (total ? " · " + Math.round(i.n / total * 100) + "%" : "")}</span></div>
+    <div class="track"><div class="fill" style="width:${i.n / max * 100}%;background:${i.color}"></div></div></div>`).join("");
+}
+let showAllRides = false;
+function renderStats(){
+  const cp = currentPass();
+  const P = [["7d","7 days"],["30d","30 days"],["month","This month"],["year","This year"]].concat(cp && S.costMode === "pass" ? [["pass","Current pass"]] : []).concat([["all","All time"],["custom","Custom"]]);
+  if (period === "pass" && (!cp || S.costMode !== "pass")) period = "all";
+  chips($("periodChips"), P, period, "period");
+  $("customRange").style.display = period === "custom" ? "flex" : "none";
+  const [a, b] = periodRange();
+  const L = S.log.filter(e => e.d >= a && e.d <= b);
+  const pdays = parkDaysIn(a, b);
+  const stepDays = Object.keys(S.days).filter(d => d >= a && d <= b && S.days[d].steps > 0);
+  const steps = stepDays.reduce((s, d) => s + (+S.days[d].steps || 0), 0);
+  const hrs = Object.keys(S.days).filter(d => d >= a && d <= b).reduce((s, d) => s + hoursOf(d), 0);
+  const bestStep = stepDays.sort((x, y) => S.days[y].steps - S.days[x].steps)[0];
+  const hDays = Object.keys(S.days).filter(d => d >= a && d <= b && hoursOf(d) > 0).length;
+  const tiles = [[num(pdays.size), "park days"], [num(L.length), "rides"], [pdays.size ? (L.length / pdays.size).toFixed(1) : "–", "rides / day"]];
+  if (F("visits")) tiles.push([hrs ? (Math.round(hrs * 10) / 10).toLocaleString() : "–", "hours in parks"], [hDays ? fmtH(hrs / hDays) : "–", "avg park day"], [hrs ? (L.length / hrs).toFixed(1) : "–", "rides / hour"]);
+  if (F("steps")) tiles.push([steps ? num(steps) : "–", "steps"], [stepDays.length ? num(steps / stepDays.length) : "–", "avg steps / day"], [bestStep ? num(S.days[bestStep].steps) : "–", bestStep ? "best: " + dLabel(bestStep, { month: "short", day: "numeric" }) : "best steps day"]);
+  $("statTiles").innerHTML = tiles.map(([v, l]) => `<div class="stat"><b>${v}</b><span>${esc(l)}</span></div>`).join("");
+  const prev = prevRange(a, b);
+
+  let h = "";
+  if (!L.length && !pdays.size) { $("statBody").innerHTML = `<div class="card empty" style="margin-top:14px">Nothing logged in this period yet.</div>`; return; }
+
+  // Compare with previous period
+  if (prev) {
+    const pL = S.log.filter(e => e.d >= prev[0] && e.d <= prev[1]);
+    const pD = parkDaysIn(prev[0], prev[1]).size;
+    const pH = Object.keys(S.days).filter(d => d >= prev[0] && d <= prev[1]).reduce((s, d) => s + hoursOf(d), 0);
+    const pS = Object.keys(S.days).filter(d => d >= prev[0] && d <= prev[1]).reduce((s, d) => s + (+S.days[d].steps || 0), 0);
+    const delta = (cur, old, label, fmt) => { const dlt = cur - old; if (!cur && !old) return ""; return `<span class="${dlt > 0 ? "up" : dlt < 0 ? "down" : ""}">${dlt > 0 ? "▲" : dlt < 0 ? "▼" : "="} ${fmt ? fmt(Math.abs(dlt)) : num(Math.abs(dlt))}</span> ${label}`; };
+    const parts = [delta(pdays.size, pD, "park days"), delta(L.length, pL.length, "rides"), F("visits") ? delta(hrs, pH, "hours", v => fmtH(v)) : "", F("steps") ? delta(steps, pS, "steps") : ""].filter(Boolean);
+    if (parts.length) h += `<div class="cmp">vs. ${esc(prev[2])}: ${parts.join(" · ")}</div>`;
+  }
+
+  // Records & highlights
+  const perDay = {}; L.forEach(e => perDay[e.d] = (perDay[e.d] || 0) + 1);
+  const busiest = Object.keys(perDay).sort((x, y) => perDay[y] - perDay[x] || y.localeCompare(x))[0];
+  const hourDays = Object.keys(S.days).filter(d => d >= a && d <= b && hoursOf(d) > 0);
+  const longest = hourDays.sort((x, y) => hoursOf(y) - hoursOf(x))[0];
+  const arrivals = [], departs = [];
+  hourDays.forEach(d => { const vs = visitsOf(d).filter(v => toMin(v.in) != null); if (!vs.length) return; arrivals.push(Math.min(...vs.map(v => toMin(v.in)))); const outs = vs.filter(v => toMin(v.out) != null).map(v => toMin(v.out)); if (outs.length) departs.push(Math.max(...outs)); });
+  const avgClock = arr => { if (!arr.length) return "–"; const m = Math.round(arr.reduce((s, v) => s + v, 0) / arr.length); return fmtClock(pad(Math.floor(m / 60)) + ":" + pad(m % 60)); };
+  const sorted = [...pdays].sort(); let streak = 0, run = 0, prevD = null, streakEnd = null;
+  sorted.forEach(d => { run = prevD && addDays(prevD, 1) === d ? run + 1 : 1; if (run > streak) { streak = run; streakEnd = d; } prevD = d; });
+  const distinct = new Set(L.map(e => e.r));
+  const activeRides = S.rides.filter(r => !r.retired);
+  const firstEver = new Map(); S.log.slice().sort((x, y) => x.t - y.t).forEach(e => { if (!firstEver.has(e.r)) firstEver.set(e.r, e.d); });
+  const newRides = [...firstEver].filter(([, d]) => d >= a && d <= b).map(([r]) => r);
+  const nights = S.stays.reduce((n, st) => { let c = 0; for (let d = st.in; d < st.out; d = addDays(d, 1)) if (d >= a && d <= b) c++; return n + c; }, 0);
+  const moments = S.journal.filter(j => j.d >= a && j.d <= b).length;
+  const short = d => dLabel(d, { month: "short", day: "numeric" });
+  const recs = [
+    busiest ? [perDay[busiest] + " rides", "most in a day · " + short(busiest)] : null,
+    longest && F("visits") ? [fmtH(hoursOf(longest)), "longest park day · " + short(longest)] : null,
+    hourDays.length && F("visits") ? [fmtH(hourDays.reduce((s, d) => s + hoursOf(d), 0) / hourDays.length), "average park day"] : null,
+    arrivals.length && F("visits") ? [avgClock(arrivals) + " – " + avgClock(departs), "typical arrive – leave"] : null,
+    [distinct.size + " / " + activeRides.length, "different rides ridden"],
+    streak > 1 ? [streak + " days", "longest streak · ended " + short(streakEnd)] : null,
+    newRides.length ? [newRides.length + "", "first-time rides" ] : null,
+    nights && F("hotels") ? [nights + (nights === 1 ? " night" : " nights"), "in hotels"] : null,
+    moments && F("journal") ? [moments + " ✨", "magical moments"] : null,
+  ].filter(Boolean);
+  h += `<h2>Highlights</h2><div class="card"><div class="recs">${recs.map(([v, l]) => `<div class="rec"><b>${esc(v)}</b><span>${esc(l)}</span></div>`).join("")}</div>
+    ${newRides.length ? `<p class="note" style="margin:10px 0 0">First time riding: ${newRides.map(r => esc(ride(r).name)).join(", ")}</p>` : ""}</div>`;
+
+  // Top rides
+  const rc = {}; L.forEach(e => rc[e.r] = (rc[e.r] || 0) + 1);
+  const top = Object.keys(rc).sort((x, y) => rc[y] - rc[x]);
+  const shown = showAllRides ? top : top.slice(0, 8);
+  h += `<h2>Most ridden <span class="t" style="text-transform:none;letter-spacing:0">tap a ride for details</span></h2><div class="card">${top.length ? bars(shown.map(id => ({ label: esc(ride(id).name), n: rc[id], color: park(ride(id).park).color, tap: id }))) : '<div class="empty">No rides.</div>'}
+    ${top.length > 8 ? `<button class="btn sm" data-act="toggleAll">${showAllRides ? "Show top 8" : "Show all " + top.length}</button>` : ""}</div>`;
+
+  // By park
+  const pc = {}, pdc = {}; L.forEach(e => { const pk = ride(e.r).park; pc[pk] = (pc[pk] || 0) + 1; });
+  S.log.filter(e => e.d >= a && e.d <= b).forEach(e => { const pk = ride(e.r).park; (pdc[pk] = pdc[pk] || new Set()).add(e.d); });
+  const ph = {}; Object.keys(S.days).forEach(d => { if (d >= a && d <= b) visitsOf(d).forEach(v => { ph[v.park] = (ph[v.park] || 0) + visitMins(v) / 60; (pdc[v.park] = pdc[v.park] || new Set()).add(d); }); });
+  const pks = S.parks.filter(p => pc[p.id] || ph[p.id]);
+  h += `<h2>By park</h2><div class="card">${bars(pks.map(p => ({ label: esc(p.name), n: pc[p.id] || 0, color: p.color, right: num(pc[p.id] || 0) + ((pc[p.id] || 0) === 1 ? " ride · " : " rides · ") + pdc[p.id].size + (pdc[p.id].size === 1 ? " day" : " days") + (ph[p.id] && F("visits") ? " · " + fmtH(ph[p.id]) : "") })))}
+    ${Object.keys(ph).length && F("visits") ? `<p class="note" style="margin:6px 0 0">Time in each park: ${pks.filter(p => ph[p.id]).sort((x, y) => ph[y.id] - ph[x.id]).map(p => esc(p.name) + " " + fmtH(ph[p.id]) + (pc[p.id] ? " (" + (pc[p.id] / ph[p.id]).toFixed(1) + " rides/hr)" : "")).join(" · ")}</p>` : ""}</div>`;
+
+  // Ride checklist
+  const notYet = S.parks.map(p => ({ p, list: activeRides.filter(r => r.park === p.id && !distinct.has(r.id)) })).filter(x => x.list.length);
+  const doneCount = activeRides.filter(r => distinct.has(r.id)).length;
+  h += `<h2>Ride checklist</h2><div class="card"><div class="row" style="margin-bottom:4px"><div class="grow"><b>${doneCount} of ${activeRides.length}</b> rides done this period</div></div>
+    <div class="prog"><div style="width:${activeRides.length ? doneCount / activeRides.length * 100 : 0}%"></div></div>
+    ${notYet.length ? `<details class="more"><summary>Show the ${activeRides.length - doneCount} you haven't ridden ›</summary>${notYet.map(x => `<div style="margin-top:10px"><b style="color:${x.p.color};font-size:14px">${esc(x.p.name)}</b><div class="t" style="margin-top:3px;line-height:1.6">${x.list.map(r => esc(r.name)).join(" · ")}</div></div>`).join("")}</details>` : `<p class="note" style="margin:6px 0 0">🏆 You've ridden every active ride in this period!</p>`}</div>`;
+
+  // When you ride
+  if (L.length) {
+    const hrCount = Array(24).fill(0); L.forEach(e => hrCount[new Date(e.t).getHours()]++);
+    let lo = hrCount.findIndex(n => n), hi = 23 - [...hrCount].reverse().findIndex(n => n);
+    lo = Math.min(lo, 9); hi = Math.max(hi, 21);
+    const hmax = Math.max(1, ...hrCount);
+    const hl = h0 => h0 === 0 ? "12a" : h0 < 12 ? h0 + "a" : h0 === 12 ? "12p" : (h0 - 12) + "p";
+    const peak = hrCount.indexOf(Math.max(...hrCount));
+    const wd = Array(7).fill(0); pdays.forEach(d => wd[pd(d).getDay()]++);
+    const wdr = Array(7).fill(0); L.forEach(e => wdr[pd(e.d).getDay()]++);
+    const wmax = Math.max(1, ...wd), names = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+    h += `<h2>When you ride</h2><div class="card"><div class="t">Rides by time of day · busiest around ${hl(peak)}</div>
+      <div class="cols">${hrCount.slice(lo, hi + 1).map((n, i) => `<div class="c">${n ? `<u>${n}</u>` : ""}<i style="height:${n / hmax * 80}%"></i><em>${(lo + i) % 3 === 0 ? hl(lo + i) : ""}</em></div>`).join("")}</div>
+      <div class="t" style="margin-top:16px">Park days by day of week</div>
+      <div class="cols" style="height:90px">${wd.map((n, i) => `<div class="c">${n ? `<u>${n}</u>` : ""}<i style="height:${n / wmax * 75}%;background:var(--accent)"></i><em>${names[i]}</em></div>`).join("")}</div>
+      ${pdays.size ? `<p class="note" style="margin:10px 0 0">Favorite day: <b>${names[wd.indexOf(Math.max(...wd))]}</b>${Math.max(...wd) > 0 ? " · most rides on " + names[wdr.indexOf(Math.max(...wdr))] + "s" : ""}</p>` : ""}</div>`;
+  }
+
+  // Scores
+  S.rides.filter(r => r.kind === "score" && F("scores")).forEach(r => {
+    const sc = L.filter(e => e.r === r.id && e.score != null).sort((x, y) => x.t - y.t);
+    if (!sc.length) return;
+    const vals = sc.map(e => e.score), best = Math.max(...vals), avg = vals.reduce((s, v) => s + v, 0) / vals.length;
+    const bestE = sc.find(e => e.score === best);
+    const recent = sc.slice(-10).reverse();
+    h += `<h2>${esc(r.name)}</h2><div class="card"><div class="stats">
+      <div class="stat sm"><b style="color:var(--gold)">${num(best)}</b><span>best · ${dLabel(bestE.d, { month: "short", day: "numeric" })}</span></div>
+      <div class="stat sm"><b>${num(avg)}</b><span>average</span></div><div class="stat sm"><b>${num(vals[vals.length - 1])}</b><span>last of ${vals.length}</span></div></div>
+      <div style="margin-top:6px">${bars(recent.map(e => ({ label: dLabel(e.d, { month: "short", day: "numeric" }) + (e.score === best ? " 🏆" : ""), n: e.score, color: e.score === best ? "var(--gold)" : "var(--accent2)", right: num(e.score) })))}</div>
+      <p class="note" style="margin:4px 0 0">Last ${recent.length} scores, newest first.${vals.length >= 6 ? (() => { const l5 = vals.slice(-5), e5 = vals.slice(0, -5); const la = l5.reduce((s, v) => s + v, 0) / 5, ea = e5.reduce((s, v) => s + v, 0) / e5.length; const pct = Math.round((la - ea) / ea * 100); return ` Your last 5 average <b class="${pct >= 0 ? "up" : "down"}">${pct >= 0 ? "+" : ""}${pct}%</b> vs. before.`; })() : ""}</p></div>`;
+  });
+
+  // Songs
+  S.rides.filter(r => r.kind === "song" && F("songs")).forEach(r => {
+    const sl = L.filter(e => e.r === r.id && e.song);
+    if (!sl.length) return;
+    const c = {}; sl.forEach(e => c[e.song] = (c[e.song] || 0) + 1);
+    const list = r.songs.filter(s => c[s.id] || !s.retired).sort((x, y) => (c[y.id] || 0) - (c[x.id] || 0));
+    const miss = r.songs.filter(s => !s.retired && !c[s.id]);
+    h += `<h2>${esc(r.name)} songs</h2><div class="card">${bars(list.map(s => ({ label: esc(s.name) + (s.retired ? '<span class="tag">retired</span>' : ""), n: c[s.id] || 0, color: s.color })), sl.length)}
+      <p class="note" style="margin:8px 0 0">${miss.length ? "Still waiting on: " + miss.map(s => esc(s.name)).join(", ") : "🏆 You've heard every song in this period!"}</p></div>`;
+  });
+
+  // Over time
+  const buckets = new Map();
+  L.forEach(e => { const k = bucket(e.d); if (!buckets.has(k)) buckets.set(k, {}); const o = buckets.get(k); const pk = ride(e.r).park; o[pk] = (o[pk] || 0) + 1; });
+  const keys = [...buckets.keys()].sort().reverse();
+  const bmax = Math.max(1, ...keys.map(k => Object.values(buckets.get(k)).reduce((s, n) => s + n, 0)));
+  const gc = document.createElement("div"); chips(gc, [["day","Day"],["week","Week"],["month","Month"],["year","Year"]], group, "group");
+  h += `<h2>Rides over time</h2><div class="chips">${gc.innerHTML}</div><div class="card" style="margin-top:8px">
+    <div class="legend">${S.parks.map(p => `<span><i style="background:${p.color}"></i>${esc(p.name)}</span>`).join("")}</div>
+    <div class="trend">${keys.length ? keys.map(k => { const o = buckets.get(k), tot = Object.values(o).reduce((s, n) => s + n, 0);
+      return `<div class="trow"><span class="lbl">${esc(bucketLabel(k))}</span><div class="stack">${Object.keys(o).map(pk => `<div style="width:${o[pk] / bmax * 100}%;background:${park(pk).color}"></div>`).join("")}</div><span class="n">${tot}</span></div>`; }).join("") : '<div class="empty">No rides.</div>'}</div></div>`;
+
+  $("statBody").innerHTML = h;
+}
+
+function passForm(p){
+  const isNew = !p; p = p || { name: "Annual Pass", start: today(), end: addDays(today(), 364), cost: "", ticket: "" };
+  openForm(isNew ? "Add annual pass" : "Edit pass", [
+    { k: "name", label: "Pass name", value: p.name, req: true, placeholder: "e.g. Sorcerer Pass" },
+    { k: "start", label: "Starts", type: "date", value: p.start, req: true },
+    { k: "end", label: "Expires", type: "date", value: p.end, req: true },
+    { k: "cost", label: "What you paid ($, total incl. tax)", type: "number", value: p.cost, req: true },
+    { k: "ticket", label: "Normal 1-day ticket price ($, optional — shows how much you're saving)", type: "number", value: p.ticket },
+  ], v => {
+    if (v.end < v.start) { toast("Expiration must be after the start date"); return false; }
+    const o = { name: v.name, start: v.start, end: v.end, cost: +v.cost || 0, ticket: v.ticket ? +v.ticket : "" };
+    if (isNew) S.passes.push(Object.assign({ id: uid() }, o)); else Object.assign(p, o);
+    save(); toast(isNew ? "Pass added" : "Pass updated");
+  }, isNew ? { focus: false } : { focus: false, onDelete: () => { S.passes = S.passes.filter(x => x !== p); save(); }, deleteMsg: "Delete this pass? Your rides stay." });
+}
+function ticketForm(t){
+  const isNew = !t; t = t || { name: "1-Day Ticket", start: curDay, end: curDay, cost: "" };
+  openForm(isNew ? "Add ticket" : "Edit ticket", [
+    { k: "name", label: "Ticket", value: t.name, req: true, placeholder: "e.g. 4-Day Park Hopper" },
+    { k: "start", label: "First day used", type: "date", value: t.start, req: true },
+    { k: "end", label: "Last day used (same day for a 1-day ticket)", type: "date", value: t.end, req: true },
+    { k: "cost", label: "What you paid ($, total incl. tax)", type: "number", value: t.cost, req: true },
+  ], v => {
+    if (v.end < v.start) { toast("Last day must be on or after the first day"); return false; }
+    const o = { name: v.name, start: v.start, end: v.end, cost: +v.cost || 0 };
+    if (isNew) S.tickets.push(Object.assign({ id: uid() }, o)); else Object.assign(t, o);
+    save(); toast(isNew ? "Ticket added" : "Ticket updated");
+  }, { focus: false, onDelete: isNew ? null : () => { S.tickets = S.tickets.filter(x => x !== t); save(); }, deleteMsg: "Delete this ticket? Your rides stay." });
+}
+function renderTickets(){
+  const tk = S.tickets.slice().sort((a, b) => b.start.localeCompare(a.start));
+  let h = `<h2>Tickets</h2>`;
+  if (!tk.length) {
+    $("passBody").innerHTML = h + `<div class="card"><p class="note" style="margin-top:0">Add each ticket you buy with the days you used it. You'll see what every ride and every hour in the park actually cost you.</p>
+      ${F("visits") ? '<p class="note">Tip: tap "Arrived" and "Leaving" on the Today screen to get cost per hour.</p>' : ""}<button class="btn pri wide" data-act="ticketAdd">Add a ticket</button></div>`;
+    return;
+  }
+  const tot = tk.reduce((o, t) => { const s = passStats(t); o.cost += s.cost; o.days += s.days; o.rides += s.rides; o.hours += s.hours; return o; }, { cost: 0, days: 0, rides: 0, hours: 0 });
+  h += `<div class="card"><div class="t">All tickets · ${tk.length} ticket${tk.length === 1 ? "" : "s"} · ${money(tot.cost)} spent</div>
+    <div class="stats" style="margin-top:10px${F("visits") ? "" : ";grid-template-columns:1fr 1fr"}">
+      <div class="stat"><b style="color:var(--accent2)">${tot.rides ? money(tot.cost / tot.rides) : "–"}</b><span>per ride</span></div>
+      ${F("visits") ? `<div class="stat"><b style="color:var(--gold)">${tot.hours ? money(tot.cost / tot.hours) : "–"}</b><span>per hour</span></div>` : ""}
+      <div class="stat"><b style="color:var(--accent)">${tot.days ? money(tot.cost / tot.days) : "–"}</b><span>per park day</span></div>
+    </div>
+    <div class="stats" style="margin-top:9px${F("visits") ? "" : ";grid-template-columns:1fr 1fr"}"><div class="stat"><b>${num(tot.rides)}</b><span>rides</span></div>${F("visits") ? `<div class="stat"><b>${tot.hours ? Math.round(tot.hours * 10) / 10 : "–"}</b><span>hours</span></div>` : ""}<div class="stat"><b>${tot.days}</b><span>park days</span></div></div>
+    ${!tot.hours && F("visits") ? '<p class="note" style="margin:10px 0 0">Tap "Arrived" and "Leaving" on the Today screen to see cost per hour.</p>' : ""}</div>`;
+  h += `<button class="btn pri wide" style="margin-top:12px" data-act="ticketAdd">+ Add a ticket</button>`;
+  h += `<h2>Each ticket</h2>` + tk.map(t => { const s = passStats(t);
+    return `<div class="card"><div class="row" style="align-items:flex-start"><div class="grow"><b>${esc(t.name)}</b>
+      <div class="t">${t.start === t.end ? dLabel(t.start) : dLabel(t.start) + " – " + dLabel(t.end)} · ${money(s.cost)}</div></div>
+      <button class="btn sm" style="flex:none" data-act="ticketEdit" data-id="${esc(t.id)}">Edit</button></div>
+      <div class="t" style="margin-top:8px;color:var(--text)">${s.rides} rides${s.perRide != null ? " · <b>" + money(s.perRide) + "</b>/ride" : ""}${s.hours && F("visits") ? " · " + (Math.round(s.hours * 10) / 10) + " hrs · <b>" + money(s.perHour) + "</b>/hr" : ""}</div></div>`; }).join("");
+  $("passBody").innerHTML = h;
+}
+function renderPass(){
+  const cp = currentPass();
+  if (!cp) {
+    $("passBody").innerHTML = `<h2>Annual pass</h2><div class="card"><p class="note" style="margin-top:0">Add your pass dates and what you paid. Your cost per park day and per ride will go down every time you visit.</p>
+      <button class="btn pri wide" data-act="passAdd">Add my annual pass</button></div>`;
+    return;
+  }
+  const t = today(), ps = passStats(cp);
+  const total = Math.max(1, daysBetween(cp.start, cp.end) + 1);
+  const elapsed = Math.min(total, Math.max(0, daysBetween(cp.start, t) + 1));
+  const left = daysBetween(t, cp.end);
+  const status = t < cp.start ? `Starts in ${daysBetween(t, cp.start)} days` : left >= 0 ? `${left} day${left === 1 ? "" : "s"} left · expires ${dLabel(cp.end)}` : `Expired ${dLabel(cp.end)}`;
+  let h = `<h2>${t >= cp.start && t <= cp.end ? "Current pass" : "Latest pass"} <button class="btn sm" data-act="passEdit" data-id="${esc(cp.id)}">Edit</button></h2>
+  <div class="card"><h3>${esc(cp.name)}</h3><div class="t">${dLabel(cp.start)} – ${dLabel(cp.end)} · paid ${money(ps.cost)}</div>
+    <div class="prog"><div style="width:${elapsed / total * 100}%"></div></div><div class="t">${status}</div>
+    <div class="stats" style="margin-top:14px">
+      <div class="stat"><b style="color:var(--accent)">${ps.perDay != null ? money(ps.perDay) : "–"}</b><span>per park day</span></div>
+      <div class="stat"><b style="color:var(--accent2)">${ps.perRide != null ? money(ps.perRide) : "–"}</b><span>per ride</span></div>
+      <div class="stat"><b>${ps.days}</b><span>park days</span></div>
+    </div>
+    <div class="stats" style="margin-top:9px">
+      ${F("visits") ? `<div class="stat"><b>${ps.perHour != null ? money(ps.perHour) : "–"}</b><span>per hour${ps.hoursDays ? " (" + ps.hoursDays + " days w/ hours)" : " — log park visits on Today"}</span></div>` : `<div class="stat"><b>${num(ps.rides)}</b><span>rides</span></div>`}
+      <div class="stat"><b>${ps.days && elapsed >= 30 ? (ps.days / (elapsed / 30.4)).toFixed(1) : "–"}</b><span>visits / month${elapsed < 30 ? " (after 30 days)" : ""}</span></div>
+      <div class="stat"><b>${ps.days ? money(ps.cost / (ps.days + 1)) : money(ps.cost)}</b><span>per day after next visit</span></div>
+    </div>
+    ${F("visits") ? `<div class="stats" style="margin-top:9px;grid-template-columns:1fr 1fr">
+      <div class="stat"><b>${num(ps.rides)}</b><span>rides</span></div>
+      <div class="stat"><b>${ps.hours ? Math.round(ps.hours * 10) / 10 : "–"}</b><span>hours in park</span></div>
+    </div>` : ""}`;
+  if (cp.ticket) {
+    const value = ps.days * cp.ticket, be = Math.ceil(ps.cost / cp.ticket);
+    h += `<div class="card" style="margin-top:10px;background:var(--panel2)">${value >= ps.cost
+      ? `<div class="big" style="color:var(--good)">${money(value - ps.cost)}</div><div class="note">saved vs. buying ${ps.days} one-day tickets at ${money(cp.ticket)} 🎉</div>`
+      : `<div class="big">${be - ps.days}</div><div class="note">more park day${be - ps.days === 1 ? "" : "s"} until the pass pays for itself (break-even at ${be} days vs. ${money(cp.ticket)} tickets)</div>`}</div>`;
+  } else h += `<p class="note" style="margin:12px 0 0">Tip: add a normal ticket price in Edit to see how much the pass is saving you.</p>`;
+  h += `</div>`;
+  if (S.passes.length > 1) {
+    h += `<h2>All passes</h2><div class="card"><div class="list">` + S.passes.slice().sort((a, b) => b.start.localeCompare(a.start)).map(p => { const s = passStats(p);
+      return `<div class="li"><div class="grow"><div>${esc(p.name)}</div><div class="t">${dLabel(p.start)} – ${dLabel(p.end)} · ${s.days} days · ${s.rides} rides${s.perDay != null ? " · " + money(s.perDay) + "/day" : ""}</div></div><button class="btn sm" data-act="passEdit" data-id="${esc(p.id)}">Edit</button></div>`; }).join("") + `</div></div>`;
+  }
+  h += `<button class="btn wide" style="margin-top:12px" data-act="passAdd">+ Add a renewal or new pass</button>`;
+  $("passBody").innerHTML = h;
+}
+
+const HOTELS = ["Contemporary","Bay Lake Tower","Polynesian Village","Grand Floridian","Wilderness Lodge","Fort Wilderness","Beach Club","Yacht Club","BoardWalk Inn","Riviera","Caribbean Beach","Coronado Springs","Old Key West","Saratoga Springs","Animal Kingdom Lodge","Port Orleans French Quarter","Port Orleans Riverside","Pop Century","Art of Animation","All-Star Movies","All-Star Music","All-Star Sports","Swan","Dolphin","Swan Reserve"];
+function stayForm(s){
+  const isNew = !s; s = s || { hotel: "", in: curDay, out: addDays(curDay, 1), cost: "", rating: "", notes: "" };
+  const names = [...new Set(S.stays.map(x => x.hotel).concat(HOTELS))];
+  openForm(isNew ? "Add hotel stay" : "Edit stay", [
+    { k: "hotel", label: "Hotel", value: s.hotel, req: true, list: "hotelList", placeholder: "Start typing…" },
+    { k: "in", label: "Check-in", type: "date", value: s.in, req: true },
+    { k: "out", label: "Check-out", type: "date", value: s.out, req: true },
+    { k: "cost", label: "Total cost ($, optional)", type: "number", value: s.cost },
+    { k: "rating", label: "Rating", type: "select", value: s.rating, options: [["", "No rating"], ["5", "★★★★★ Loved it"], ["4", "★★★★ Great"], ["3", "★★★ Fine"], ["2", "★★ Meh"], ["1", "★ Never again"]] },
+    { k: "notes", label: "Notes (room, view, perks…)", type: "textarea", value: s.notes },
+  ], v => {
+    if (v.out <= v.in) { toast("Check-out must be after check-in"); return false; }
+    const o = { hotel: v.hotel, in: v.in, out: v.out, cost: v.cost ? +v.cost : "", rating: v.rating ? +v.rating : "", notes: v.notes };
+    if (isNew) S.stays.push(Object.assign({ id: uid() }, o)); else Object.assign(s, o);
+    save(); toast(isNew ? "Stay added" : "Stay updated");
+  }, { focus: isNew, extraHtml: `<datalist id="hotelList">${names.map(n => `<option value="${esc(n)}">`).join("")}</datalist>`, onDelete: isNew ? null : () => { S.stays = S.stays.filter(x => x !== s); save(); }, deleteMsg: "Delete this stay?" });
+}
+function renderHotels(){
+  const st = S.stays.slice().sort((a, b) => b.in.localeCompare(a.in));
+  const nights = s => Math.max(0, daysBetween(s.in, s.out));
+  const totalN = st.reduce((n, s) => n + nights(s), 0);
+  const paid = st.filter(s => s.cost !== "" && s.cost != null);
+  const spent = paid.reduce((n, s) => n + (+s.cost || 0), 0), paidN = paid.reduce((n, s) => n + nights(s), 0);
+  const t = today(), upcoming = st.filter(s => s.in > t).sort((a, b) => a.in.localeCompare(b.in))[0];
+  let h = `<div class="stats" style="margin-top:14px"><div class="stat"><b>${st.length}</b><span>stays</span></div><div class="stat"><b>${totalN}</b><span>nights</span></div>
+    <div class="stat"><b>${paidN ? money(spent / paidN) : "–"}</b><span>avg / night</span></div></div>`;
+  if (upcoming) h += `<div class="card" style="margin-top:10px">🧳 Next stay: <b>${esc(upcoming.hotel)}</b> in ${daysBetween(t, upcoming.in)} days (${dLabel(upcoming.in)})</div>`;
+  h += `<button class="btn pri wide" style="margin-top:12px" data-act="stayAdd">+ Add a stay</button>`;
+  if (st.length) {
+    const byH = {}; st.forEach(s => { const o = byH[s.hotel] = byH[s.hotel] || { n: 0, stays: 0, r: [] }; o.n += nights(s); o.stays++; if (s.rating) o.r.push(s.rating); });
+    const hs = Object.keys(byH).sort((a, b) => byH[b].n - byH[a].n);
+    h += `<h2>Nights by hotel</h2><div class="card">${bars(hs.map((k, i) => ({ label: esc(k) + (byH[k].r.length ? ` <span class="stars">${"★".repeat(Math.round(byH[k].r.reduce((s, v) => s + v, 0) / byH[k].r.length))}</span>` : ""), n: byH[k].n, color: COLORS[i % COLORS.length], right: byH[k].n + " night" + (byH[k].n === 1 ? "" : "s") + " · " + byH[k].stays + " stay" + (byH[k].stays === 1 ? "" : "s") })))}
+      ${spent ? `<p class="note" style="margin:8px 0 0">Total spent on stays with a cost entered: ${money(spent)}</p>` : ""}</div>`;
+    h += `<h2>All stays</h2><div class="card"><div class="list">${st.map(s => `<div class="li"><div class="grow"><div>${esc(s.hotel)} ${s.rating ? `<span class="stars">${"★".repeat(s.rating)}</span>` : ""}</div>
+      <div class="t">${dLabel(s.in, { month: "short", day: "numeric", year: "numeric" })} → ${dLabel(s.out, { month: "short", day: "numeric" })} · ${nights(s)} night${nights(s) === 1 ? "" : "s"}${s.cost ? " · " + money(+s.cost) : ""}</div>
+      ${s.notes ? `<div class="t" style="margin-top:3px;white-space:pre-wrap">${esc(s.notes)}</div>` : ""}</div><button class="btn sm" data-act="stayEdit" data-id="${esc(s.id)}">Edit</button></div>`).join("")}</div></div>`;
+  }
+  $("hotelBody").innerHTML = h;
+}
+
+function renderJournal(){
+  if (!$("jDate").value) $("jDate").value = curDay;
+  const cur = $("jPark").value;
+  $("jPark").innerHTML = parkOptions("—").map(([v, l]) => `<option value="${esc(v)}">${esc(l)}</option>`).join("");
+  $("jPark").value = cur;
+  const q = $("jSearch").value.trim().toLowerCase();
+  const list = S.journal.filter(j => !q || j.text.toLowerCase().includes(q) || (j.park && park(j.park).name.toLowerCase().includes(q)))
+    .sort((a, b) => b.d.localeCompare(a.d) || (b.c || 0) - (a.c || 0));
+  $("jCount").textContent = S.journal.length ? S.journal.length + " ✨" : "";
+  $("jList").innerHTML = list.length ? list.map(j => `<div class="card"><div class="row" style="align-items:flex-start"><div class="grow">
+      <b>${dLabel(j.d)}</b>${j.park ? `<span class="tag" style="color:${park(j.park).color}">${esc(park(j.park).name)}</span>` : ""}</div>
+      <button class="btn sm" style="flex:none" data-act="jEdit" data-id="${esc(j.id)}">Edit</button></div><div class="jentry">${esc(j.text)}</div></div>`).join("")
+    : `<div class="card empty">${q ? "No moments match that search." : "No magical moments yet. Save the next one that gives you goosebumps."}</div>`;
+}
+
+function renderSettings(){
+  const counts = {}; S.log.forEach(e => counts[e.r] = (counts[e.r] || 0) + 1);
+  let h = `<h2>Features</h2><div class="card"><p class="note" style="margin:0 0 4px">Turn off anything you don't want to bother with. Turning a feature off hides it everywhere and never deletes what you've logged.</p>
+    ${FEATURES.map(([k, name, desc]) => `<label class="feat"><div class="grow"><div>${name}</div><div class="t">${desc}</div></div><span class="sw"><input type="checkbox" data-feat="${k}" ${F(k) ? "checked" : ""}><span></span></span></label>`).join("")}</div>`;
+  h += `<h2>Cost tracking</h2><div class="card"><select id="costMode">
+      <option value="pass" ${S.costMode === "pass" ? "selected" : ""}>🎟️ Annual pass</option>
+      <option value="tickets" ${S.costMode === "tickets" ? "selected" : ""}>🎫 Tickets</option>
+      <option value="off" ${S.costMode === "off" ? "selected" : ""}>Off (hide the cost tab)</option></select>
+    <p class="note" style="margin-bottom:0">Switching never deletes anything. Your passes and tickets are kept and come back if you switch again.</p></div>`;
+  h += `<h2>Parks <button class="btn sm" data-act="parkAdd">+ Add</button></h2><div class="card"><div class="list">${S.parks.map(p => `<div class="li"><span class="dot" style="background:${p.color}"></span><div class="grow">${esc(p.name)}</div><button class="btn sm" data-act="parkEdit" data-id="${esc(p.id)}">Edit</button></div>`).join("")}</div></div>`;
+  h += `<h2>Rides <button class="btn sm" data-act="rideAdd">+ Add</button></h2><p class="note" style="margin:-4px 4px 10px">Retire a ride if it closes or changes: it leaves the log buttons but stays in your stats. 🎵 = pick a song each ride, 🎯 = enter a score.</p>`;
+  S.parks.concat(S.rides.some(r => !S.parks.some(p => p.id === r.park)) ? [{ id: "__none", name: "No park", color: "#888" }] : []).forEach(p => {
+    const rs = S.rides.filter(r => p.id === "__none" ? !S.parks.some(x => x.id === r.park) : r.park === p.id);
+    if (!rs.length) return;
+    h += `<div class="card"><h3 style="color:${p.color}">${esc(p.name)}</h3><div class="list">${rs.map(r => `<div class="li"><div class="grow"><div>${r.kind === "song" ? "🎵 " : r.kind === "score" ? "🎯 " : ""}${esc(r.name)}${r.retired ? '<span class="tag">retired</span>' : ""}</div><div class="t">${counts[r.id] || 0} rides${r.kind === "song" ? " · " + r.songs.filter(s => !s.retired).length + " songs" : ""}</div></div>
+      ${r.kind === "song" ? `<button class="btn sm" data-act="songs" data-id="${esc(r.id)}">Songs</button>` : ""}<button class="btn sm" data-act="rideEdit" data-id="${esc(r.id)}">Edit</button></div>`).join("")}</div></div>`;
+  });
+  h += `<h2>Backup &amp; new phone</h2><div class="card"><p class="note" style="margin-top:0">Everything is saved on this phone only. Export a backup now and then — tap Export, then "Save to Files" or email it to yourself. On a new phone, open the app and Import that file. Backups from your old song tracker work here too.</p>
+    <div class="btnrow" style="margin-top:4px"><button class="btn" data-act="export">Export</button><button class="btn" data-act="import">Import</button><button class="btn" data-act="copy">Copy text</button></div>
+    <details style="margin-top:12px"><summary class="note">Or paste backup text</summary><textarea id="pasteIn" placeholder="Paste backup text here" style="margin-top:8px;font:12px ui-monospace,monospace"></textarea><button class="btn sm" style="margin-top:8px" data-act="pasteImport">Import pasted text</button></details>
+    <p class="note" style="margin-bottom:0">${S.log.length} rides · ${Object.keys(S.days).length} days · ${S.passes.length} passes · ${S.tickets.length} tickets · ${S.stays.length} stays · ${S.journal.length} moments</p></div>`;
+  h += `<h2>Danger zone</h2><div class="card"><button class="btn danger" data-act="wipe">Erase all data</button></div>`;
+  $("setBody").innerHTML = h;
+}
+
+function rideForm(r){
+  const isNew = !r; r = r || { name: "", park: curPark || (S.parks[0] && S.parks[0].id), kind: "plain", retired: false };
+  openForm(isNew ? "Add ride" : "Edit ride", [
+    { k: "name", label: "Ride name", value: r.name, req: true },
+    { k: "park", label: "Park", type: "select", value: r.park, options: parkOptions() },
+    { k: "kind", label: "When logging", type: "select", value: r.kind, options: [["plain", "Just count the ride"], ["song", "🎵 Pick which song played"], ["score", "🎯 Enter a score"]] },
+  ].concat(isNew ? [] : [{ k: "retired", label: "Status", type: "select", value: r.retired ? "1" : "", options: [["", "Active"], ["1", "Retired (hidden from log buttons)"]] }]), v => {
+    const o = { name: v.name, park: v.park, kind: v.kind };
+    if (!isNew) o.retired = v.retired === "1";
+    if (isNew) { const nr = Object.assign({ id: uid(), retired: false, songs: [] }, o); S.rides.push(nr); save(); if (nr.kind === "song") setTimeout(() => songsSheet(nr.id), 50); }
+    else { Object.assign(r, o); save(); }
+  }, { focus: isNew, onDelete: isNew ? null : () => {
+      if (S.log.some(e => e.r === r.id)) { toast("This ride has history — retire it instead"); return; }
+      S.rides = S.rides.filter(x => x !== r); save(); }, deleteMsg: `Delete ${r.name}?` });
+}
+function songsSheet(rid){
+  const r = ride(rid), c = {}; S.log.forEach(e => { if (e.r === rid && e.song) c[e.song] = (c[e.song] || 0) + 1; });
+  const body = openSheet(r.name + " songs", `<div class="list">${r.songs.map(s => `<div class="li"><span class="dot" style="background:${s.color}"></span><div class="grow"><div>${esc(s.name)}${s.retired ? '<span class="tag">retired</span>' : ""}</div><div class="t">${esc(s.artist)} · ${c[s.id] || 0}×</div></div>
+      <button class="btn sm" data-sact="edit" data-sid="${esc(s.id)}">Edit</button><button class="btn sm" data-sact="ret" data-sid="${esc(s.id)}">${s.retired ? "Restore" : "Retire"}</button></div>`).join("") || '<div class="empty">No songs yet.</div>'}</div>
+    <label>Add a song</label><input id="nsName" placeholder="Song title"><input id="nsArtist" placeholder="Artist (optional)" style="margin-top:8px">
+    <button class="btn pri wide" style="margin-top:10px" id="nsAdd">Add song</button>
+    <p class="note">Retired songs stay in your stats but aren't offered when you log a ride.</p>`);
+  body.querySelector("#nsAdd").onclick = () => {
+    const n = body.querySelector("#nsName").value.trim(); if (!n) return;
+    const used = new Set(r.songs.map(s => s.color));
+    r.songs.push({ id: uid(), name: n, artist: body.querySelector("#nsArtist").value.trim(), retired: false, color: COLORS.find(x => !used.has(x)) || COLORS[r.songs.length % COLORS.length] });
+    save(); songsSheet(rid);
+  };
+  body.querySelectorAll("[data-sact]").forEach(b => b.onclick = () => {
+    const s = songOf(r, b.dataset.sid); if (!s) return;
+    if (b.dataset.sact === "ret") { s.retired = !s.retired; save(); songsSheet(rid); }
+    else openForm("Edit song", [{ k: "name", label: "Song", value: s.name, req: true }, { k: "artist", label: "Artist", value: s.artist }],
+      v => { s.name = v.name; s.artist = v.artist; save(); setTimeout(() => songsSheet(rid), 0); }, {
+        onDelete: () => { if (c[s.id]) { toast("This song has history — retire it instead"); return; } r.songs = r.songs.filter(x => x !== s); save(); setTimeout(() => songsSheet(rid), 0); }, deleteMsg: `Delete ${s.name}?` });
+  });
+}
+function parkForm(p){
+  const isNew = !p; p = p || { name: "", color: COLORS.find(c => !S.parks.some(x => x.color === c)) || COLORS[0] };
+  openForm(isNew ? "Add park" : "Edit park", [
+    { k: "name", label: "Park name", value: p.name, req: true, placeholder: "e.g. Typhoon Lagoon" },
+    { k: "color", label: "Color", type: "select", value: p.color, options: COLORS.map((c, i) => [c, ["Pink","Cyan","Gold","Green","Purple","Orange","Blue","Red","Lime","Teal","Rose","Periwinkle"][i]]) },
+  ], v => {
+    if (isNew) S.parks.push({ id: uid(), name: v.name, color: v.color }); else Object.assign(p, { name: v.name, color: v.color });
+    save();
+  }, { focus: isNew, onDelete: isNew ? null : () => {
+      if (S.rides.some(r => r.park === p.id)) { toast("Move or delete this park's rides first"); return; }
+      S.parks = S.parks.filter(x => x !== p); save(); }, deleteMsg: `Delete ${p.name}?` });
+}
+
+/* ---------- backup ---------- */
+function backupText(){ return JSON.stringify(Object.assign({ app: "park-stats", exportedAt: new Date().toISOString() }, S)); }
+async function doExport(){
+  const name = "park-stats-backup-" + today() + ".json";
+  const blob = new Blob([backupText()], { type: "application/json" });
+  try { const f = new File([blob], name, { type: "application/json" });
+    if (navigator.canShare && navigator.canShare({ files: [f] })) { await navigator.share({ files: [f], title: "Park Stats backup" }); return; }
+  } catch (e) { if (e && e.name === "AbortError") return; }
+  try { const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 5000); toast("Backup saved"); }
+  catch (e) { doCopy(); }
+}
+async function doCopy(){
+  try { await navigator.clipboard.writeText(backupText()); toast("Backup text copied — paste it into a note or email"); }
+  catch (e) { const t = $("pasteIn"); if (t) { t.value = backupText(); t.closest("details").open = true; t.select(); toast("Select the text and copy it"); } }
+}
+/* Old song tracker → Cosmic Rewind rides */
+function mergeOldSongTracker(o){
+  let gotg = S.rides.find(r => r.id === "gotg") || S.rides.find(r => /cosmic rewind/i.test(r.name));
+  if (!gotg) { gotg = { id: "gotg", name: "Guardians: Cosmic Rewind", park: (S.parks.find(p => p.id === "ep") || S.parks[0] || {}).id, kind: "song", retired: false, songs: [] }; S.rides.push(gotg); }
+  gotg.kind = "song";
+  const map = {};
+  (o.songs || []).forEach(s => {
+    if (!s || !s.id || !s.name) return;
+    let m = gotg.songs.find(x => x.id === s.id && x.name.toLowerCase() === String(s.name).toLowerCase()) || gotg.songs.find(x => x.name.toLowerCase() === String(s.name).toLowerCase());
+    if (!m) { m = { id: uid(), name: String(s.name), artist: String(s.artist || ""), retired: !!s.retired, color: s.color || COLORS[gotg.songs.length % COLORS.length] }; gotg.songs.push(m); }
+    map[s.id] = m.id;
+  });
+  const have = new Set(S.log.map(e => e.id)); let n = 0;
+  (o.rides || []).forEach(r => {
+    if (!r || !isFinite(r.t) || !map[r.s]) return;
+    const id = "old-" + (r.id || r.t); if (have.has(id)) return;
+    S.log.push({ id, t: +r.t, d: ymd(new Date(+r.t)), r: gotg.id, song: map[r.s] }); n++;
+  });
+  return n;
+}
+function importText(txt){
+  let o; try { o = JSON.parse(txt); } catch (e) {}
+  if (o && valid(o)) {
+    o = normalize(o);
+    const body = openSheet("Import backup", `<p class="note" style="color:var(--text);font-size:15px">This backup has ${o.log.length} rides, ${o.journal.length} moments, ${o.stays.length} hotel stays, ${o.passes.length} passes and ${o.tickets.length} tickets.</p>
+      <p class="note"><b>Replace</b> swaps everything here for the backup (best for a new phone). <b>Merge</b> adds anything that's missing.</p>
+      <div class="btnrow"><button class="btn" id="imMerge">Merge</button><button class="btn pri" id="imReplace">Replace</button></div>`);
+    body.querySelector("#imReplace").onclick = () => { delete o.app; delete o.exportedAt; S = o; closeSheet(); save(); toast("Backup restored"); };
+    body.querySelector("#imMerge").onclick = () => {
+      const mergeArr = (k) => { const have = new Set(S[k].map(x => x.id)); o[k].forEach(x => { if (x && x.id && !have.has(x.id)) S[k].push(x); }); };
+      mergeArr("parks"); mergeArr("rides"); mergeArr("log"); mergeArr("passes"); mergeArr("tickets"); mergeArr("stays"); mergeArr("journal");
+      o.rides.forEach(r => { const mine = S.rides.find(x => x.id === r.id); if (mine && mine !== r) { const hs = new Set(mine.songs.map(s => s.id)); r.songs.forEach(s => { if (!hs.has(s.id)) mine.songs.push(s); }); } });
+      Object.keys(o.days).forEach(d => { if (!S.days[d]) S.days[d] = o.days[d]; });
+      closeSheet(); save(); toast("Merged");
+    };
+    return;
+  }
+  if (o && Array.isArray(o.songs) && Array.isArray(o.rides)) { const n = mergeOldSongTracker(o); save(); toast(`Added ${n} Cosmic Rewind rides from your song tracker`); return; }
+  toast("That doesn't look like a Park Stats backup");
+}
+
+/* ---------- render all ---------- */
+function render(){
+  document.querySelectorAll("nav button").forEach(b => b.classList.toggle("on", b.dataset.v === tab));
+  const cm = S.costMode;
+  $("navCost").style.display = cm === "off" ? "none" : "";
+  $("navCostL").textContent = cm === "tickets" ? "Tickets" : "Pass";
+  $("navCost").querySelector(".ic").textContent = cm === "tickets" ? "🎫" : "🎟️";
+  if (tab === "pass" && cm === "off") tab = "today";
+  $("navHotels").style.display = F("hotels") ? "" : "none";
+  $("navJournal").style.display = F("journal") ? "" : "none";
+  if ((tab === "hotels" && !F("hotels")) || (tab === "journal" && !F("journal"))) tab = "today";
+  document.querySelectorAll("main section").forEach(s => s.classList.toggle("on", s.id === "v-" + tab));
+  if (tab === "today") renderToday();
+  else if (tab === "stats") renderStats();
+  else if (tab === "pass") (S.costMode === "tickets" ? renderTickets : renderPass)();
+  else if (tab === "hotels") renderHotels();
+  else if (tab === "journal") renderJournal();
+  else if (tab === "set") renderSettings();
+}
+
+/* ---------- events ---------- */
+document.addEventListener("click", e => {
+  const el = e.target.closest("[data-act]"); if (!el) return;
+  const a = el.dataset.act, id = el.dataset.id;
+  switch (a) {
+    case "tab": tab = el.dataset.v; if (el.dataset.new) { $("jDate").value = curDay; setTimeout(() => $("jText").focus(), 50); } window.scrollTo(0, 0); render(); break;
+    case "closeSheet": closeSheet(); break;
+    case "day": curDay = addDays(curDay, +el.dataset.n); render(); break;
+    case "park": curPark = el.dataset.k; try { localStorage.setItem(KEY + ".park", curPark); } catch (err) {} render(); break;
+    case "ride": tapRide(id); break;
+    case "delLog": { const ent = S.log.find(x => x.id === id); if (!ent) break; S.log = S.log.filter(x => x !== ent); save(); toast("Ride deleted", "Undo", () => { S.log.push(ent); save(); }); break; }
+    case "period": period = el.dataset.k; render(); break;
+    case "group": group = el.dataset.k; render(); break;
+    case "toggleAll": showAllRides = !showAllRides; render(); break;
+    case "rideInfo": rideInfo(id); break;
+    case "passAdd": passForm(); break;
+    case "ticketAdd": ticketForm(); break;
+    case "visitAdd": visitForm(); break;
+    case "visitEdit": visitForm(+el.dataset.i); break;
+    case "visitArrive": { const vs = visitsOf(curDay).slice(); vs.push({ park: curPark, in: nowHM(), out: "" }); setVisits(curDay, vs); toast("📍 Arrived at " + park(curPark).name); break; }
+    case "visitLeave": { const vs = visitsOf(curDay).map(v => Object.assign({}, v)); const o = vs.find(v => !v.out); if (!o) break; o.out = nowHM(); if (toMin(o.out) <= toMin(o.in)) o.out = ""; setVisits(curDay, vs); toast(o.out ? "Left " + park(o.park).name + " · " + fmtH(visitMins(o) / 60) : "Too soon to leave — edit the times instead"); break; }
+    case "ticketEdit": ticketForm(S.tickets.find(t => t.id === id)); break;
+    case "passEdit": passForm(S.passes.find(p => p.id === id)); break;
+    case "stayAdd": stayForm(); break;
+    case "stayEdit": stayForm(S.stays.find(s => s.id === id)); break;
+    case "jAdd": {
+      const text = $("jText").value.trim(); if (!text) { $("jText").focus(); break; }
+      S.journal.push({ id: uid(), d: $("jDate").value || today(), park: $("jPark").value, text, c: Date.now() });
+      $("jText").value = ""; save(); toast("✨ Moment saved"); break;
+    }
+    case "jEdit": { const j = S.journal.find(x => x.id === id); if (!j) break;
+      openForm("Edit moment", [{ k: "d", label: "Date", type: "date", value: j.d, req: true }, { k: "park", label: "Park", type: "select", value: j.park, options: parkOptions("—") }, { k: "text", label: "What happened?", type: "textarea", value: j.text, req: true }],
+        v => { Object.assign(j, v); save(); }, { focus: false, onDelete: () => { S.journal = S.journal.filter(x => x !== j); save(); }, deleteMsg: "Delete this moment?" }); break; }
+    case "parkAdd": parkForm(); break;
+    case "parkEdit": parkForm(S.parks.find(p => p.id === id)); break;
+    case "rideAdd": rideForm(); break;
+    case "rideEdit": rideForm(S.rides.find(r => r.id === id)); break;
+    case "songs": songsSheet(id); break;
+    case "export": doExport(); break;
+    case "copy": doCopy(); break;
+    case "import": $("fileIn").click(); break;
+    case "pasteImport": importText($("pasteIn").value); break;
+    case "wipe": confirmBox("Erase every ride, day, pass, ticket, stay and journal entry? Export a backup first if you might want them back.", "Erase everything", () => { S = defaults(); save(); toast("All data erased"); }); break;
+  }
+});
+$("fileIn").onchange = async e => { const f = e.target.files[0]; e.target.value = ""; if (f) importText(await f.text()); };
+$("dayPick").onchange = () => { if ($("dayPick").value) { curDay = $("dayPick").value; render(); } };
+$("tSteps").onchange = () => {
+  const n = Math.max(0, Math.round(+$("tSteps").value || 0));
+  S.days[curDay] = Object.assign({}, S.days[curDay], { steps: n });
+  if (dayEmpty(S.days[curDay])) delete S.days[curDay];
+  save(); if (n) toast(num(n) + " steps saved");
+};
+$("parkDay").onchange = () => {
+  const d = S.days[curDay] = Object.assign({}, S.days[curDay], { visit: $("parkDay").checked });
+  if (dayEmpty(d)) delete S.days[curDay];
+  save();
+};
+$("from").onchange = $("to").onchange = render;
+document.addEventListener("change", e => {
+  const fk = e.target.dataset && e.target.dataset.feat;
+  if (fk) { S.features = Object.assign({}, S.features, { [fk]: e.target.checked }); save(); const f = FEATURES.find(x => x[0] === fk); toast(f[1].replace(/^\S+\s/, "") + (e.target.checked ? " on" : " off")); }
+});
+document.addEventListener("change", e => { if (e.target.id === "costMode") { S.costMode = e.target.value; save(); toast(S.costMode === "off" ? "Cost tab hidden" : (S.costMode === "tickets" ? "Tracking tickets" : "Tracking annual pass")); } });
+$("jSearch").oninput = render;
+window.addEventListener("focus", () => { if (tab === "today" && document.activeElement !== $("tSteps")) render(); });
+
+/* ---------- first run: pull in old song tracker data on this site ---------- */
+if (firstRun) {
+  try {
+    const old = JSON.parse(localStorage.getItem(OLD_KEY));
+    if (old && Array.isArray(old.rides) && old.rides.length) { const n = mergeOldSongTracker(old); setTimeout(() => toast(`Brought over ${n} Cosmic Rewind rides from your song tracker`), 600); }
+  } catch (e) {}
+  try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {}
+}
+render();
+})();
+</script>
+</body>
+</html>
