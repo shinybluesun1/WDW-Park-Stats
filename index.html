@@ -45,6 +45,10 @@ label{font-size:13px;color:var(--muted);display:block;margin:12px 0 6px}
 .chips::-webkit-scrollbar{display:none}
 .chip{flex:none;font:inherit;font-size:13px;padding:7px 12px;border-radius:99px;border:1px solid var(--line);background:var(--panel);color:var(--muted);cursor:pointer}
 .chip.on{background:var(--text);color:var(--bg);border-color:var(--text)}
+.subtabs{display:flex;gap:4px;margin-top:14px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:4px;overflow-x:auto;scrollbar-width:none}
+.subtabs::-webkit-scrollbar{display:none}
+.subtabs .chip{flex:1 0 auto;border:0;background:none;border-radius:10px;padding:9px 10px;font-weight:500}
+.subtabs .chip.on{background:var(--accent);color:#1a0010}
 .dot{width:12px;height:12px;border-radius:50%;flex:none;display:inline-block}
 .list .li{display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--line)}
 .list .li:last-child{border-bottom:0}
@@ -165,6 +169,7 @@ nav button.on{color:var(--accent)}
       <div><label>From</label><input type="date" id="from"></div>
       <div><label>To</label><input type="date" id="to"></div>
     </div>
+    <div class="subtabs" id="statTabs"></div>
     <div class="stats" style="margin-top:12px" id="statTiles"></div>
     <div id="statBody"></div>
   </section>
@@ -206,7 +211,7 @@ nav button.on{color:var(--accent)}
 (() => {
 "use strict";
 const KEY = "parkStats.v2", OLD_KEY = "cosmicSongTracker.v1";
-const APP_VERSION = "2026-11-20.2";
+const APP_VERSION = "2026-11-20.4";
 const COLORS = ["#ff4fa3","#3de3ff","#ffd23f","#5dff9d","#b78cff","#ff8a3d","#4f8bff","#ff5f5f","#c6ff3d","#3dffd0","#ff9be0","#9aa7ff"];
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 const $ = id => document.getElementById(id);
@@ -569,7 +574,22 @@ function bars(items, total){
   return items.map(i => `<div class="bar${i.tap ? " tap" : ""}" ${i.tap ? `data-act="rideInfo" data-id="${esc(i.tap)}"` : ""}><div class="top"><span>${i.label}</span><span>${i.right != null ? i.right : num(i.n) + (total ? " · " + Math.round(i.n / total * 100) + "%" : "")}</span></div>
     <div class="track"><div class="fill" style="width:${i.n / max * 100}%;background:${i.color}"></div></div></div>`).join("");
 }
-let showAllRides = false, REPORT = null;
+let showAllRides = false, REPORT = null, stab = "overview", sstab = "features";
+const SET_TABS = [["features", "Features"], ["stats", "Stats"], ["rides", "Rides & shows"], ["backup", "Backup"]];
+const STAT_TABS = [
+  ["overview", "Overview", ["compare", "highlights"]],
+  ["rides", "Rides", ["most", "checklist", "when", "overtime"]],
+  ["parks", "Parks & time", ["bypark", "time"]],
+  ["fun", "Scores & songs", ["scores", "songs"]],
+];
+const STAT_SECTIONS = [
+  ["compare", "📈 Compare to previous period", "Overview"], ["highlights", "⭐ Highlights", "Overview"],
+  ["most", "🏅 Most done", "Rides"], ["checklist", "✅ Ride checklist", "Rides"], ["when", "🕐 When you ride", "Rides"], ["overtime", "📅 Rides over time", "Rides"],
+  ["bypark", "🗺️ By park", "Parks & time"], ["time", "⏱️ Time per park", "Parks & time · needs arrive & leave times"],
+  ["scores", "🎯 Scores", "Scores & songs · needs score entry"], ["songs", "🎵 Songs", "Scores & songs · needs song picking"],
+];
+const statOn = k => !(S.statsOff && S.statsOff[k]);
+const statAvail = k => statOn(k) && (k !== "time" || F("visits")) && (k !== "scores" || F("scores")) && (k !== "songs" || F("songs"));
 function renderStats(){
   const cp = currentPass();
   const P = [["7d","7 days"],["30d","30 days"],["month","This month"],["year","This year"]].concat(cp && S.costMode === "pass" ? [["pass","Current pass"]] : []).concat([["all","All time"],["custom","Custom"]]);
@@ -591,7 +611,11 @@ function renderStats(){
   REPORT = { label: (P.find(x => x[0] === period) || [])[1] || "", a, b, tiles, recs: [], top: [], parks: [], scores: [], songs: [], empty: !L.length && !pdays.size };
   const prev = prevRange(a, b);
 
-  let h = "";
+  let h = ""; const SEC = {};
+  const tabs = STAT_TABS.filter(([k, , secs]) => secs.some(sk => statAvail(sk)));
+  if (!tabs.some(t => t[0] === stab)) stab = "overview";
+  chips($("statTabs"), tabs.map(t => [t[0], t[1]]), stab, "stab");
+  $("statTiles").style.display = stab === "overview" ? "" : "none";
   if (!L.length && !pdays.size) { $("statBody").innerHTML = `<div class="card empty" style="margin-top:14px">Nothing logged in this period yet.</div>`; return; }
 
   // Compare with previous period
@@ -605,6 +629,7 @@ function renderStats(){
     if (parts.length) h += `<div class="cmp">vs. ${esc(prev[2])}: ${parts.join(" · ")}</div>`;
   }
 
+  SEC.compare = h; h = "";
   // Records & highlights
   const perDay = {}; L.forEach(e => perDay[e.d] = (perDay[e.d] || 0) + 1);
   const busiest = Object.keys(perDay).sort((x, y) => perDay[y] - perDay[x] || y.localeCompare(x))[0];
@@ -636,6 +661,7 @@ function renderStats(){
   h += `<h2>Highlights</h2><div class="card"><div class="recs">${recs.map(([v, l]) => `<div class="rec"><b>${esc(v)}</b><span>${esc(l)}</span></div>`).join("")}</div>
     ${newRides.length ? `<p class="note" style="margin:10px 0 0">First time riding: ${newRides.map(r => esc(ride(r).name)).join(", ")}</p>` : ""}</div>`;
 
+  SEC.highlights = h; h = "";
   // Top rides
   const rc = {}; L.forEach(e => rc[e.r] = (rc[e.r] || 0) + 1);
   const top = Object.keys(rc).sort((x, y) => rc[y] - rc[x]);
@@ -644,15 +670,17 @@ function renderStats(){
   h += `<h2>${F("shows") ? "Most done" : "Most ridden"} <span class="t" style="text-transform:none;letter-spacing:0">tap for details</span></h2><div class="card">${top.length ? bars(shown.map(id => ({ label: esc(ride(id).name), n: rc[id], color: park(ride(id).park).color, tap: id }))) : '<div class="empty">No rides.</div>'}
     ${top.length > 8 ? `<button class="btn sm" data-act="toggleAll">${showAllRides ? "Show top 8" : "Show all " + top.length}</button>` : ""}</div>`;
 
+  SEC.most = h; h = "";
   // By park
   const pc = {}, pdc = {}; L.forEach(e => { const pk = ride(e.r).park; pc[pk] = (pc[pk] || 0) + 1; });
   S.log.filter(e => e.d >= a && e.d <= b).forEach(e => { const pk = ride(e.r).park; (pdc[pk] = pdc[pk] || new Set()).add(e.d); });
   const ph = {}; Object.keys(S.days).forEach(d => { if (d >= a && d <= b) visitsOf(d).forEach(v => { ph[v.park] = (ph[v.park] || 0) + visitMins(v) / 60; (pdc[v.park] = pdc[v.park] || new Set()).add(d); }); });
   const pks = S.parks.filter(p => pc[p.id] || ph[p.id]);
-  REPORT.parks = pks.map(p => ({ label: p.name, n: pc[p.id] || 0, color: p.color, right: num(pc[p.id] || 0) + ((pc[p.id] || 0) === 1 ? " ride · " : " rides · ") + pdc[p.id].size + (pdc[p.id].size === 1 ? " day" : " days") + (ph[p.id] && F("visits") ? " · " + fmtH(ph[p.id]) : "") }));
-  h += `<h2>By park</h2><div class="card">${bars(pks.map(p => ({ label: esc(p.name), n: pc[p.id] || 0, color: p.color, right: num(pc[p.id] || 0) + ((pc[p.id] || 0) === 1 ? " ride · " : " rides · ") + pdc[p.id].size + (pdc[p.id].size === 1 ? " day" : " days") + (ph[p.id] && F("visits") ? " · " + fmtH(ph[p.id]) : "") })))}
-    ${Object.keys(ph).length && F("visits") ? `<p class="note" style="margin:6px 0 0">Time in each park: ${pks.filter(p => ph[p.id]).sort((x, y) => ph[y.id] - ph[x.id]).map(p => esc(p.name) + " " + fmtH(ph[p.id]) + (pc[p.id] ? " (" + (pc[p.id] / ph[p.id]).toFixed(1) + " rides/hr)" : "")).join(" · ")}</p>` : ""}</div>`;
+  REPORT.parks = pks.map(p => ({ label: p.name, n: pc[p.id] || 0, color: p.color, right: num(pc[p.id] || 0) + ((pc[p.id] || 0) === 1 ? " ride · " : " rides · ") + pdc[p.id].size + (pdc[p.id].size === 1 ? " day" : " days") + (ph[p.id] && F("visits") && !statAvail("time") ? " · " + fmtH(ph[p.id]) : "") }));
+  h += `<h2>By park</h2><div class="card">${bars(pks.map(p => ({ label: esc(p.name), n: pc[p.id] || 0, color: p.color, right: num(pc[p.id] || 0) + ((pc[p.id] || 0) === 1 ? " ride · " : " rides · ") + pdc[p.id].size + (pdc[p.id].size === 1 ? " day" : " days") + (ph[p.id] && F("visits") && !statAvail("time") ? " · " + fmtH(ph[p.id]) : "") })))}
+    ${Object.keys(ph).length && F("visits") && !statOn("time") ? `<p class="note" style="margin:6px 0 0">Time in each park: ${pks.filter(p => ph[p.id]).sort((x, y) => ph[y.id] - ph[x.id]).map(p => esc(p.name) + " " + fmtH(ph[p.id]) + (pc[p.id] ? " (" + (pc[p.id] / ph[p.id]).toFixed(1) + " rides/hr)" : "")).join(" · ")}</p>` : ""}</div>`;
 
+  SEC.bypark = h; h = "";
   // Ride checklist
   const notYet = S.parks.map(p => ({ p, list: activeRides.filter(r => r.park === p.id && !distinct.has(r.id)) })).filter(x => x.list.length);
   const doneCount = activeRides.filter(r => distinct.has(r.id)).length;
@@ -660,6 +688,7 @@ function renderStats(){
     <div class="prog"><div style="width:${activeRides.length ? doneCount / activeRides.length * 100 : 0}%"></div></div>
     ${notYet.length ? `<details class="more"><summary>Show the ${activeRides.length - doneCount} you haven't ridden ›</summary>${notYet.map(x => `<div style="margin-top:10px"><b style="color:${x.p.color};font-size:14px">${esc(x.p.name)}</b><div class="t" style="margin-top:3px;line-height:1.6">${x.list.map(r => esc(r.name)).join(" · ")}</div></div>`).join("")}</details>` : `<p class="note" style="margin:6px 0 0">🏆 You've ridden every active ride in this period!</p>`}</div>`;
 
+  SEC.checklist = h; h = "";
   // When you ride
   if (L.length) {
     const hrCount = Array(24).fill(0); L.forEach(e => hrCount[new Date(e.t).getHours()]++);
@@ -678,6 +707,7 @@ function renderStats(){
       ${pdays.size ? `<p class="note" style="margin:10px 0 0">Favorite day: <b>${names[wd.indexOf(Math.max(...wd))]}</b>${Math.max(...wd) > 0 ? " · most rides on " + names[wdr.indexOf(Math.max(...wdr))] + "s" : ""}</p>` : ""}</div>`;
   }
 
+  SEC.when = h; h = "";
   // Scores
   S.rides.filter(r => r.kind === "score" && F("scores")).forEach(r => {
     const sc = L.filter(e => e.r === r.id && e.score != null).sort((x, y) => x.t - y.t);
@@ -693,6 +723,7 @@ function renderStats(){
       <p class="note" style="margin:4px 0 0">Last ${recent.length} scores, newest first.${vals.length >= 6 ? (() => { const l5 = vals.slice(-5), e5 = vals.slice(0, -5); const la = l5.reduce((s, v) => s + v, 0) / 5, ea = e5.reduce((s, v) => s + v, 0) / e5.length; const pct = Math.round((la - ea) / ea * 100); return ` Your last 5 average <b class="${pct >= 0 ? "up" : "down"}">${pct >= 0 ? "+" : ""}${pct}%</b> vs. before.`; })() : ""}</p></div>`;
   });
 
+  SEC.scores = h; h = "";
   // Songs
   S.rides.filter(r => r.kind === "song" && F("songs")).forEach(r => {
     const sl = L.filter(e => e.r === r.id && e.song);
@@ -705,6 +736,7 @@ function renderStats(){
       <p class="note" style="margin:8px 0 0">${miss.length ? "Still waiting on: " + miss.map(s => esc(s.name)).join(", ") : "🏆 You've heard every song in this period!"}</p></div>`;
   });
 
+  SEC.songs = h; h = "";
   // Over time
   const buckets = new Map();
   L.forEach(e => { const k = bucket(e.d); if (!buckets.has(k)) buckets.set(k, {}); const o = buckets.get(k); const pk = ride(e.r).park; o[pk] = (o[pk] || 0) + 1; });
@@ -716,6 +748,36 @@ function renderStats(){
     <div class="trend">${keys.length ? keys.map(k => { const o = buckets.get(k), tot = Object.values(o).reduce((s, n) => s + n, 0);
       return `<div class="trow"><span class="lbl">${esc(bucketLabel(k))}</span><div class="stack">${Object.keys(o).map(pk => `<div style="width:${o[pk] / bmax * 100}%;background:${park(pk).color}"></div>`).join("")}</div><span class="n">${tot}</span></div>`; }).join("") : '<div class="empty">No rides.</div>'}</div></div>`;
 
+  SEC.overtime = h; h = "";
+
+  // Time per park
+  REPORT.time = [];
+  if (F("visits")) {
+    const pv = {}; Object.keys(S.days).forEach(d => { if (d >= a && d <= b) visitsOf(d).forEach(v => { if (visitMins(v) > 0) (pv[v.park] = pv[v.park] || new Set()).add(d); }); });
+    const tp = S.parks.filter(p => ph[p.id] > 0).sort((x, y) => ph[y.id] - ph[x.id]);
+    const totalH = tp.reduce((t, p) => t + ph[p.id], 0);
+    if (tp.length) {
+      const items = tp.map(p => ({ label: p.name, n: ph[p.id], color: p.color,
+        right: fmtH(ph[p.id]) + " · " + Math.round(ph[p.id] / totalH * 100) + "%" }));
+      REPORT.time = items;
+      SEC.time = `<h2>Time per park</h2><div class="card">${bars(items.map(i => Object.assign({}, i, { label: esc(i.label) })))}
+        <div class="list" style="margin-top:6px">${tp.map(p => `<div class="li"><span class="dot" style="background:${p.color}"></span><div class="grow"><div>${esc(p.name)}</div>
+          <div class="t">${pv[p.id].size} day${pv[p.id].size === 1 ? "" : "s"} · avg ${fmtH(ph[p.id] / pv[p.id].size)} per visit${pc[p.id] ? " · " + (pc[p.id] / ph[p.id]).toFixed(1) + " " + (F("shows") ? "per hr" : "rides/hr") : ""}</div></div></div>`).join("")}</div>
+        <p class="note" style="margin:8px 0 0">${fmtH(totalH)} in the parks this period.</p></div>`;
+    }
+  }
+
+  // hidden sections stay out of the share card too
+  if (!statOn("highlights")) REPORT.recs = [];
+  if (!statOn("most")) REPORT.top = [];
+  if (!statOn("bypark")) REPORT.parks = [];
+  if (!statOn("time")) REPORT.time = [];
+  if (!statOn("scores")) REPORT.scores = [];
+  if (!statOn("songs")) REPORT.songs = [];
+
+  const want = (STAT_TABS.find(t => t[0] === stab) || STAT_TABS[0])[2];
+  h = want.filter(k => statAvail(k)).map(k => SEC[k] || "").join("");
+  if (!h.trim()) h = `<div class="card empty" style="margin-top:14px">Nothing to show here for this period.</div>`;
   $("statBody").innerHTML = h;
 }
 
@@ -874,14 +936,20 @@ function renderJournal(){
 }
 
 function renderSettings(){
+  const T = { features: "", stats: "", rides: "", backup: "" };
   const counts = {}; S.log.forEach(e => counts[e.r] = (counts[e.r] || 0) + 1);
   let h = `<h2>Features</h2><div class="card"><p class="note" style="margin:0 0 4px">Turn off anything you don't want to bother with. Turning a feature off hides it everywhere and never deletes what you've logged.</p>
     ${FEATURES.map(([k, name, desc]) => `<label class="feat"><div class="grow"><div>${name}</div><div class="t">${desc}</div></div><span class="sw"><input type="checkbox" data-feat="${k}" ${F(k) ? "checked" : ""}><span></span></span></label>`).join("")}</div>`;
+  T.features += h; h = "";
+  h += `<h2>Stats sections</h2><div class="card"><p class="note" style="margin:0 0 4px">Choose what shows on the Stats tab and your shared stats card.</p>
+    ${STAT_SECTIONS.map(([k, name, where]) => `<label class="feat"><div class="grow"><div>${name}</div><div class="t">${where}</div></div><span class="sw"><input type="checkbox" data-stat="${k}" ${statOn(k) ? "checked" : ""}><span></span></span></label>`).join("")}</div>`;
+  T.stats += h; h = "";
   h += `<h2>Cost tracking</h2><div class="card"><select id="costMode">
       <option value="pass" ${S.costMode === "pass" ? "selected" : ""}>🎟️ Annual pass</option>
       <option value="tickets" ${S.costMode === "tickets" ? "selected" : ""}>🎫 Tickets</option>
       <option value="off" ${S.costMode === "off" ? "selected" : ""}>Off (hide the cost tab)</option></select>
     <p class="note" style="margin-bottom:0">Switching never deletes anything. Your passes and tickets are kept and come back if you switch again.</p></div>`;
+  T.features += h; h = "";
   h += `<h2>Parks <button class="btn sm" data-act="parkAdd">+ Add</button></h2><div class="card"><div class="list">${S.parks.map(p => `<div class="li"><span class="dot" style="background:${p.color}"></span><div class="grow">${esc(p.name)}</div><button class="btn sm" data-act="parkEdit" data-id="${esc(p.id)}">Edit</button></div>`).join("")}</div></div>`;
   h += `<h2>Rides &amp; shows <button class="btn sm" data-act="rideAdd">+ Add</button></h2><p class="note" style="margin:-4px 4px 10px">Retire anything that closes or changes: it leaves the log buttons but stays in your stats. 🎭 = show, 🎵 = pick a song, 🎯 = enter a score.</p>`;
   S.parks.concat(S.rides.some(r => !S.parks.some(p => p.id === r.park)) ? [{ id: "__none", name: "No park", color: "#888" }] : []).forEach(p => {
@@ -890,13 +958,16 @@ function renderSettings(){
     h += `<div class="card"><h3 style="color:${p.color}">${esc(p.name)}</h3><div class="list">${rs.map(r => `<div class="li"><div class="grow"><div>${r.show ? "🎭 " : ""}${r.kind === "song" ? "🎵 " : r.kind === "score" ? "🎯 " : ""}${esc(r.name)}${r.retired ? '<span class="tag">retired</span>' : ""}</div><div class="t">${counts[r.id] || 0} rides${r.kind === "song" ? " · " + r.songs.filter(s => !s.retired).length + " songs" : ""}</div></div>
       ${r.kind === "song" ? `<button class="btn sm" data-act="songs" data-id="${esc(r.id)}">Songs</button>` : ""}<button class="btn sm" data-act="rideEdit" data-id="${esc(r.id)}">Edit</button></div>`).join("")}</div></div>`;
   });
+  T.rides += h; h = "";
   h += `<h2>Backup &amp; new phone</h2><div class="card"><p class="note" style="margin-top:0">Everything is saved on this phone only. Export a backup now and then — tap Export, then "Save to Files" or email it to yourself. On a new phone, open the app and Import that file. Backups from your old song tracker work here too.</p>
     <div class="btnrow" style="margin-top:4px"><button class="btn" data-act="export">Export</button><button class="btn" data-act="import">Import</button><button class="btn" data-act="copy">Copy text</button></div>
     <details style="margin-top:12px"><summary class="note">Or paste backup text</summary><textarea id="pasteIn" placeholder="Paste backup text here" style="margin-top:8px;font:12px ui-monospace,monospace"></textarea><button class="btn sm" style="margin-top:8px" data-act="pasteImport">Import pasted text</button></details>
     <p class="note" style="margin-bottom:0">${S.log.length} rides · ${Object.keys(S.days).length} days · ${S.passes.length} passes · ${S.tickets.length} tickets · ${S.stays.length} stays · ${S.journal.length} moments</p></div>`;
   h += `<h2>App</h2><div class="card"><div class="row"><div class="grow"><div>Version ${APP_VERSION}</div><div class="t">The app checks for updates each time you open it.</div></div><button class="btn sm" style="flex:none" data-act="checkUpdate">Check for updates</button></div></div>`;
   h += `<h2>Danger zone</h2><div class="card"><button class="btn danger" data-act="wipe">Erase all data</button></div>`;
-  $("setBody").innerHTML = h;
+  T.backup += h;
+  const sub = document.createElement("div"); chips(sub, SET_TABS, sstab, "sstab");
+  $("setBody").innerHTML = `<div class="subtabs" style="margin-bottom:4px">${sub.innerHTML}</div>` + T[sstab];
 }
 
 function rideForm(r){
@@ -1013,9 +1084,19 @@ function reportRange(){
   const o = { month: "short", day: "numeric", year: "numeric" };
   return a === b ? dLabel(a, o) : dLabel(a, o) + " – " + dLabel(b, o);
 }
-async function drawReport(){
+const SHARE_PARTS = [["tiles","📊 Totals"],["highlights","⭐ Highlights"],["most","🏅 Most done"],["bypark","🗺️ By park"],["time","⏱️ Time per park"],["scores","🎯 Scores"],["songs","🎵 Songs"]];
+let shareSel = null;
+function shareAvail(){
+  const R = REPORT, has = { tiles: R.tiles.length, highlights: R.recs.length, most: R.top.length, bypark: R.parks.length, time: (R.time || []).length, scores: R.scores.length, songs: R.songs.length };
+  return SHARE_PARTS.filter(([k]) => has[k]);
+}
+async function drawReport(sel){
   try { await document.fonts.ready; } catch (e) {}
-  const R = REPORT, W = 1080, P = 60, MAXH = 9000;
+  const R = Object.assign({}, REPORT), W = 1080, P = 60, MAXH = 9000;
+  if (sel) {
+    if (!sel.tiles) R.tiles = []; if (!sel.highlights) R.recs = []; if (!sel.most) R.top = []; if (!sel.bypark) R.parks = [];
+    if (!sel.time) R.time = []; if (!sel.scores) R.scores = []; if (!sel.songs) R.songs = [];
+  }
   const c = document.createElement("canvas"); c.width = W; c.height = MAXH;
   const x = c.getContext("2d");
   const FONT = '"Space Grotesk", system-ui, -apple-system, sans-serif';
@@ -1073,6 +1154,7 @@ async function drawReport(){
   };
   if (R.top.length) { section(F("shows") ? "Most done" : "Most ridden"); barList(R.top); }
   if (R.parks.length) { section("By park"); barList(R.parks); }
+  if (R.time && R.time.length) { section("Time per park"); barList(R.time); }
   if (R.scores.length) {
     section("Scores");
     R.scores.forEach(sc => {
@@ -1118,22 +1200,48 @@ async function saveFile(blob, name, title){
 }
 async function shareStats(){
   if (!REPORT) renderStats();
-  const body = openSheet("Share stats", `<p class="note" style="margin:4px 0 10px">Making your stats card…</p>`);
-  let canvas;
-  try { canvas = await drawReport(); } catch (e) { body.innerHTML = `<p class="note">Sorry, couldn't make the image on this device.</p>`; return; }
-  const png = await new Promise(r => canvas.toBlob(r, "image/png"));
-  const url = URL.createObjectURL(png);
-  const base = "park-stats-" + (REPORT.label || "stats").toLowerCase().replace(/[^a-z0-9]+/g, "-") + "-" + today();
-  body.innerHTML = `<p class="note" style="margin:4px 0 10px">${esc(REPORT.label)} · ${esc(reportRange())}</p>
-    <img src="${url}" alt="Stats card" style="width:100%;border-radius:14px;border:1px solid var(--line);display:block">
+  const parts = shareAvail();
+  if (!shareSel) shareSel = {};
+  parts.forEach(([k]) => { if (!(k in shareSel)) shareSel[k] = true; });
+  const body = openSheet("Share stats", `<p class="note" style="margin:4px 0 8px">${esc(REPORT.label)} · ${esc(reportRange())}</p>
+    <div class="t" style="margin-bottom:6px">Include on the card:</div>
+    <div class="chips" id="shParts" style="flex-wrap:wrap"></div>
+    <div id="shPrev" style="margin-top:12px"><p class="note">Making your stats card…</p></div>
     <div class="btnrow"><button class="btn pri" id="shImg">🖼️ Save image</button><button class="btn" id="shPdf">📄 Save PDF</button></div>
-    <p class="note">Tip: you can also press and hold the picture to save or share it. Change the time period on the Stats tab to share a different range.</p>`;
-  body.querySelector("#shImg").onclick = () => saveFile(png, base + ".png", "Park Stats");
-  body.querySelector("#shPdf").onclick = async () => {
+    <p class="note">Tip: press and hold the picture to save or share it too. Change the time period on the Stats tab to share a different range.</p>`);
+  let canvas = null, png = null, url = null, gen = 0;
+  const base = "park-stats-" + (REPORT.label || "stats").toLowerCase().replace(/[^a-z0-9]+/g, "-") + "-" + today();
+  const allOn = () => parts.every(([k]) => shareSel[k]);
+  const drawChips = () => {
+    body.querySelector("#shParts").innerHTML = `<button class="chip ${allOn() ? "on" : ""}" data-pk="__all">All</button>` +
+      parts.map(([k, l]) => `<button class="chip ${shareSel[k] ? "on" : ""}" data-pk="${k}">${l}</button>`).join("");
+  };
+  const refresh = async () => {
+    const my = ++gen; drawChips();
+    const imgBtns = [body.querySelector("#shImg"), body.querySelector("#shPdf")];
+    imgBtns.forEach(b => b.disabled = true);
+    try { canvas = await drawReport(shareSel); } catch (e) { body.querySelector("#shPrev").innerHTML = `<p class="note">Sorry, couldn't make the image on this device.</p>`; return; }
+    if (my !== gen) return;
+    png = await new Promise(r => canvas.toBlob(r, "image/png"));
+    if (url) URL.revokeObjectURL(url); url = URL.createObjectURL(png);
+    body.querySelector("#shPrev").innerHTML = `<img src="${url}" alt="Stats card" style="width:100%;border-radius:14px;border:1px solid var(--line);display:block">`;
+    imgBtns.forEach(b => b.disabled = false);
+  };
+  body.querySelector("#shParts").addEventListener("click", e => {
+    const c = e.target.closest("[data-pk]"); if (!c) return;
+    const k = c.dataset.pk;
+    if (k === "__all") { const on = !allOn(); parts.forEach(([p]) => shareSel[p] = on); }
+    else shareSel[k] = !shareSel[k];
+    refresh();
+  });
+  body.querySelector("#shImg").onclick = () => png && saveFile(png, base + ".png", "Park Stats");
+  body.querySelector("#shPdf").onclick = () => {
+    if (!canvas) return;
     const jpgUrl = canvas.toDataURL("image/jpeg", 0.92), bin = atob(jpgUrl.split(",")[1]);
     const bytes = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
     saveFile(jpegPdf(bytes, canvas.width, canvas.height), base + ".pdf", "Park Stats");
   };
+  refresh();
 }
 
 /* ---------- updates ---------- */
@@ -1189,6 +1297,8 @@ document.addEventListener("click", e => {
     case "ride": tapRide(id); break;
     case "delLog": { const ent = S.log.find(x => x.id === id); if (!ent) break; S.log = S.log.filter(x => x !== ent); save(); toast("Ride deleted", "Undo", () => { S.log.push(ent); save(); }); break; }
     case "period": period = el.dataset.k; render(); break;
+    case "sstab": sstab = el.dataset.k; $("scroller").scrollTop = 0; render(); break;
+    case "stab": stab = el.dataset.k; $("scroller").scrollTop = 0; render(); break;
     case "group": group = el.dataset.k; render(); break;
     case "toggleAll": showAllRides = !showAllRides; render(); break;
     case "rideInfo": rideInfo(id); break;
@@ -1239,6 +1349,8 @@ $("parkDay").onchange = () => {
 };
 $("from").onchange = $("to").onchange = render;
 document.addEventListener("change", e => {
+  const sk = e.target.dataset && e.target.dataset.stat;
+  if (sk) { S.statsOff = Object.assign({}, S.statsOff, { [sk]: !e.target.checked }); save(); const st = STAT_SECTIONS.find(x => x[0] === sk); toast(st[1].replace(/^\S+\s/, "") + (e.target.checked ? " on" : " off")); return; }
   const fk = e.target.dataset && e.target.dataset.feat;
   if (fk) { S.features = Object.assign({}, S.features, { [fk]: e.target.checked }); save(); const f = FEATURES.find(x => x[0] === fk); toast(f[1].replace(/^\S+\s/, "") + (e.target.checked ? " on" : " off")); }
 });
