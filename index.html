@@ -18,7 +18,7 @@
 *{box-sizing:border-box}
 html,body{margin:0;background:var(--bg);color:var(--text);font-family:"Space Grotesk",system-ui,sans-serif;-webkit-tap-highlight-color:transparent}
 html,body{height:100%;overflow:hidden;overscroll-behavior:none}
-body{position:fixed;inset:0;display:flex;flex-direction:column;padding:0 env(safe-area-inset-right) 0 env(safe-area-inset-left);background:var(--bg)}
+body{position:fixed;inset:0;height:var(--app-h,auto);display:flex;flex-direction:column;padding:0 env(safe-area-inset-right) 0 env(safe-area-inset-left);background:var(--bg)}
 #scroller{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding-top:env(safe-area-inset-top);padding-bottom:24px;background:radial-gradient(1200px 500px at 50% -200px,#3a1d5c55,transparent),var(--bg)}
 header{padding:16px 16px 4px;text-align:center}
 h1{font-family:Monoton,cursive;font-weight:400;font-size:clamp(24px,8vw,34px);margin:0;background:linear-gradient(90deg,var(--accent),var(--gold),var(--accent2));-webkit-background-clip:text;background-clip:text;color:transparent}
@@ -30,6 +30,14 @@ main{max-width:640px;margin:0 auto;padding:4px 14px}
 .lb{display:flex;align-items:center;gap:8px;background:linear-gradient(135deg,#3a2a10,#2b1640);border:1px solid var(--gold);border-radius:16px;padding:10px 10px 10px 14px}
 .lb .lbt{font-weight:700;font-size:15px;line-height:1.2}
 .lb .btn{flex:none}
+.li.tap{cursor:pointer}.chev{color:var(--muted);font-size:22px;padding:0 4px}
+.secl{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:1.2px;margin:18px 0 8px}
+.songgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.sg{display:flex;gap:8px;align-items:center;padding:10px;border-radius:12px;border:1px solid var(--line);background:var(--panel2);font:inherit;font-size:13px;line-height:1.2;color:var(--text);text-align:left;cursor:pointer}
+.sg.on{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset}
+.seg{display:flex;background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:3px}
+.seg button{flex:1;text-align:center;padding:8px 4px;border-radius:9px;font:inherit;font-size:13px;color:var(--muted);background:none;border:0;cursor:pointer}
+.seg button.on{background:var(--accent);color:#1a0010;font-weight:500}
 .waitrow{display:flex;justify-content:space-between;gap:10px;align-items:baseline}
 .pct{font-size:12px;padding:2px 7px;border-radius:99px;background:var(--panel2);white-space:nowrap}
 
@@ -236,7 +244,7 @@ nav button.on{color:var(--accent)}
 (() => {
 "use strict";
 const KEY = "parkStats.v2", OLD_KEY = "cosmicSongTracker.v1";
-const APP_VERSION = "2026-11-20.7";
+const APP_VERSION = "2026-11-20.9";
 const COLORS = ["#ff4fa3","#3de3ff","#ffd23f","#5dff9d","#b78cff","#ff8a3d","#4f8bff","#ff5f5f","#c6ff3d","#3dffd0","#ff9be0","#9aa7ff"];
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 const $ = id => document.getElementById(id);
@@ -417,7 +425,7 @@ function toast(msg, label, fn){
   $("toast").classList.add("show"); clearTimeout(toastTimer);
   toastTimer = setTimeout(() => $("toast").classList.remove("show"), 4500);
 }
-function openSheet(title, html){ $("sheetTitle").textContent = title; $("sheetBody").innerHTML = html; $("sheet").classList.add("show"); return $("sheetBody"); }
+function openSheet(title, html){ $("toast").classList.remove("show"); $("sheetTitle").textContent = title; $("sheetBody").innerHTML = html; $("sheet").classList.add("show"); return $("sheetBody"); }
 function closeSheet(){ $("sheet").classList.remove("show"); $("sheetBody").innerHTML = ""; }
 $("sheet").addEventListener("click", e => { if (e.target.id === "sheet") closeSheet(); });
 
@@ -522,7 +530,7 @@ setInterval(tickLine, 1000);
 function lineBoard(){
   const L = S.line; if (!L) return;
   const now = Date.now();
-  const w = { p: L.p, b: Math.max(0, Math.round((now - L.s) / 60000)), s: L.s, to: hasLL(ride(L.r)) ? "merge" : "board" };
+  const w = { p: L.p, b: Math.max(0, Math.round((now - L.s) / 60000)), s: L.s, to: hasLL(ride(L.r)) ? "merge" : "board", tm: true };
   const saveDay = curDay; curDay = ymd(new Date(L.s));
   tapRide(L.r, { w, t: now, d: ymd(new Date(L.s)) });
   curDay = saveDay;
@@ -554,6 +562,62 @@ function waitEdit(id){
     if (isNew) toast("⏳ Wait added");
   }, { focus: isNew, saveLabel: isNew ? "Add wait" : "Save", onDelete: isNew ? null : () => { delete e.w; save(); toast("Wait time removed"); }, confirmTitle: "Remove the wait time?", deleteMsg: "Remove the wait time from this ride? The ride stays logged.", confirmLabel: "Remove wait", keepLabel: "Keep wait" });
   const del = document.getElementById("fDel"); if (del) del.textContent = "Remove wait";
+}
+function logEdit(id){
+  const e = S.log.find(x => x.id === id); if (!e) return;
+  const r = ride(e.r), kind = kindOf(r), showWait = F("waits") && !r.show, to = e.w ? e.w.to : (hasLL(r) ? "merge" : "board");
+  let song = e.song || "", mode = e.w ? "standby" : e.ll ? "ll" : "none";
+  const dt = new Date(e.t), hm = pad(dt.getHours()) + ":" + pad(dt.getMinutes());
+  const best = Math.max(0, ...S.log.filter(x => x.r === e.r && x.score != null && x.id !== e.id).map(x => x.score));
+  const songs = r.songs.filter(sg => !sg.retired || sg.id === e.song);
+  const body = openSheet(r.name, `<div class="t">${esc(park(r.park).name)}${r.show ? " · 🎭 show" : ""}</div>
+    <div class="row" style="margin-top:12px"><div><label style="margin-top:0">Date</label><input type="date" id="leD" value="${e.d}"></div><div><label style="margin-top:0">Time</label><input type="time" id="leT" value="${hm}"></div></div>
+    ${kind === "song" ? `<div class="secl">🎵 Song</div><div class="songgrid">${songs.map(sg => `<button class="sg" data-song="${esc(sg.id)}"><span class="dot" style="background:${sg.color}"></span>${esc(sg.name)}</button>`).join("")}</div>
+      <button class="sg" data-song="" style="width:100%;margin-top:8px;justify-content:center;color:var(--muted)">Didn't catch it</button>` : ""}
+    ${kind === "score" ? `<div class="secl">🎯 Score</div><input id="leScore" type="number" inputmode="numeric" placeholder="Score" value="${e.score != null ? e.score : ""}">${best ? `<div class="t" style="margin-top:6px">🏆 Best so far: ${num(best)}</div>` : ""}` : ""}
+    ${showWait ? `<div class="secl">⏳ Wait</div><div class="seg" id="leSeg"><button data-m="none">Didn't track</button><button data-m="standby">Standby</button><button data-m="ll">Lightning Lane</button></div>
+      <div id="leWait" style="margin-top:10px"></div>` : ""}
+    <div class="btnrow"><button class="btn danger" id="leDel">${r.show ? "Delete" : "Delete ride"}</button><button class="btn pri" id="leSave">Save</button></div>`);
+  const paintSongs = () => body.querySelectorAll("[data-song]").forEach(b => b.classList.toggle("on", b.dataset.song === song));
+  body.querySelectorAll("[data-song]").forEach(b => b.onclick = () => { song = b.dataset.song; paintSongs(); });
+  paintSongs();
+  const waitBox = body.querySelector("#leWait");
+  const paintWait = () => {
+    if (!showWait) return;
+    body.querySelectorAll("#leSeg button").forEach(b => b.classList.toggle("on", b.dataset.m === mode));
+    if (mode === "standby") {
+      const p = waitBox.querySelector("#leP"), a = waitBox.querySelector("#leA");
+      const pv = p ? p.value : (e.w && e.w.p ? e.w.p : ""), av = a ? a.value : (e.w ? e.w.b : "");
+      const pct = e.w && e.w.p && e.w.b != null ? (e.w.b - e.w.p) / e.w.p : null;
+      waitBox.innerHTML = `<div class="row"><div><label style="margin-top:0">Posted (min)</label><input id="leP" type="number" inputmode="numeric" value="${pv}"></div>
+        <div><label style="margin-top:0">Actual to ${to === "merge" ? "merge" : "boarding"} (min)</label><input id="leA" type="number" inputmode="numeric" value="${av}"></div></div>
+        <div class="t" style="margin-top:6px">${e.w && e.w.tm ? "⏱️ Timed with the app" : to === "merge" ? "Actual = time until you reached the merge point. A best guess is fine." : "Actual = time until you were in the boarding area. A best guess is fine."}${pct != null && e.w.tm ? " · " + (pct <= 0 ? Math.round(-pct * 100) + "% shorter" : Math.round(pct * 100) + "% longer") + " than posted" : ""}</div>`;
+    } else waitBox.innerHTML = `<div class="t">${mode === "ll" ? "Marked as Lightning Lane — not counted in wait stats." : "Pick Standby to add the posted and actual wait."}</div>`;
+  };
+  body.querySelectorAll("#leSeg button").forEach(b => b.onclick = () => { mode = b.dataset.m; paintWait(); });
+  paintWait();
+  body.querySelector("#leSave").onclick = () => {
+    const d = body.querySelector("#leD").value || e.d, tv = body.querySelector("#leT").value || hm;
+    const m = toMin(tv); const t = pd(d).getTime() + (m != null ? m : 0) * 60000;
+    const upd = { d, t };
+    if (kind === "song") upd.song = song || undefined;
+    if (kind === "score") { const sv = body.querySelector("#leScore").value.trim(); upd.score = sv === "" ? undefined : Math.round(+sv); if (sv !== "" && !isFinite(upd.score)) return; }
+    if (showWait) {
+      if (mode === "standby") {
+        const pv = body.querySelector("#leP").value.trim(), av = body.querySelector("#leA").value.trim();
+        if (av === "") { body.querySelector("#leA").focus(); toast("Add the actual wait, or pick Didn't track"); return; }
+        const b = Math.max(0, Math.round(+av)), keepS = e.w && e.w.tm && e.w.s && d === e.d;
+        upd.w = { p: pv ? Math.round(+pv) : null, b, to, s: keepS ? e.w.s : t - b * 60000, tm: !!(e.w && e.w.tm) };
+        upd.ll = undefined;
+      } else if (mode === "ll") { upd.w = undefined; upd.ll = true; }
+      else { upd.w = undefined; upd.ll = undefined; }
+    }
+    Object.keys(upd).forEach(k => { if (upd[k] === undefined) delete e[k]; else e[k] = upd[k]; });
+    closeSheet(); save(); toast("Saved " + r.name);
+  };
+  body.querySelector("#leDel").onclick = () => confirmBox(`Delete this ${r.show ? "show" : "ride"} from ${dLabel(e.d)}?`, "Delete", () => {
+    S.log = S.log.filter(x => x !== e); save(); toast("Deleted " + r.name, "Undo", () => { S.log.push(e); save(); });
+  }, "Don't delete", "Delete " + r.name + "?");
 }
 /* press & hold to start a standby timer */
 let holdTimer = null, held = false, holdXY = null;
@@ -627,9 +691,10 @@ function renderToday(){
 
   $("dayList").innerHTML = entries.length ? entries.map(e => {
     const r = ride(e.r), sg = e.song ? songOf(r, e.song) : null;
-    return `<div class="li"><span class="dot" style="background:${park(r.park).color}"></span><div class="grow"><div>${esc(r.name)}</div>
-      <div class="t">${tLabel(e.t)}${sg ? " · 🎵 " + esc(sg.name) : ""}${e.score != null ? " · 🎯 " + num(e.score) : ""}${e.w && F("waits") ? ` · <a href="#" data-act="waitEdit" data-id="${esc(e.id)}" style="color:var(--gold);text-decoration:none">⏳ ${e.w.p ? "posted " + e.w.p + " → " : ""}${fmtMin(e.w.b)}${e.w.to === "merge" ? " to merge" : ""} ✎</a>` : (!e.w && F("waits") && !r.show ? ` · <a href="#" data-act="waitEdit" data-id="${esc(e.id)}" style="color:var(--muted);text-decoration:none">+ add wait</a>` : "")}</div></div>
-      <button class="x" data-act="delLog" data-id="${esc(e.id)}" aria-label="Delete">×</button></div>`;
+    const wt = e.w && F("waits") ? ` · ⏳ ${e.w.p ? "posted " + e.w.p + " → " : ""}${fmtMin(e.w.b)}` : (e.ll && F("waits") ? " · ⚡ LL" : "");
+    return `<div class="li tap" data-act="logEdit" data-id="${esc(e.id)}"><span class="dot" style="background:${park(r.park).color}"></span><div class="grow"><div>${esc(r.name)}</div>
+      <div class="t">${tLabel(e.t)}${sg && F("songs") ? " · 🎵 " + esc(sg.name) : ""}${e.score != null && F("scores") ? " · 🎯 " + num(e.score) : ""}${wt}</div></div>
+      <span class="chev">›</span></div>`;
   }).join("") : `<div class="empty">Nothing logged ${curDay === today() ? "yet today" : "this day"}.</div>`;
   const auto = entries.length > 0;
   $("parkDay").checked = isParkDay(curDay); $("parkDay").disabled = auto;
@@ -924,6 +989,8 @@ function renderStats(){
         <h2>Records</h2><div class="card"><div class="recs">
           <div class="rec"><b>${fmtMin(act(shortest))}</b><span>shortest · ${esc(ride(shortest.r).name)}</span></div>
           <div class="rec"><b>${fmtMin(act(longest))}</b><span>longest · ${esc(ride(longest.r).name)}</span></div></div></div>`;
+      const llN = L.filter(e => e.ll).length;
+      if (llN) h += `<p class="note" style="margin:8px 4px 0">⚡ Lightning Lane used ${llN} time${llN === 1 ? "" : "s"} this period (not counted in wait stats).</p>`;
       SEC.waits = h; h = "";
       REPORT.waits = rows.map(rw => ({ label: ride(rw.id).name, n: rw.a, color: park(ride(rw.id).park).color, right: (rw.p != null ? "posted " + Math.round(rw.p) + " → " : "") + Math.round(rw.a) + " min" + (rw.pct != null ? " (" + (rw.pct <= 0 ? "−" : "+") + Math.round(Math.abs(rw.pct) * 100) + "%)" : "") }));
     }
@@ -1413,6 +1480,28 @@ async function shareStats(){
   refresh();
 }
 
+/* ---------- screen fit ----------
+   iPhone home-screen apps sometimes report a viewport shorter than the screen
+   (by roughly the top + bottom safe areas). Measure ourselves and, when running
+   full-screen, use the real screen height. Re-check whenever things change. */
+function fitScreen(){
+  let h = window.innerHeight;
+  const standalone = navigator.standalone === true || (window.matchMedia && matchMedia("(display-mode: standalone)").matches);
+  if (standalone && /iPhone|iPod/.test(navigator.userAgent)) {
+    const portrait = window.innerHeight >= window.innerWidth;
+    const fullH = portrait ? Math.max(screen.width, screen.height) : Math.min(screen.width, screen.height);
+    const fullW = portrait ? Math.min(screen.width, screen.height) : Math.max(screen.width, screen.height);
+    if (Math.abs(window.innerWidth - fullW) <= 2 && h < fullH) h = fullH;
+  }
+  document.body.style.setProperty("--app-h", h + "px");
+}
+const refit = () => { fitScreen(); setTimeout(fitScreen, 120); setTimeout(fitScreen, 500); };
+["resize", "orientationchange", "pageshow", "focus"].forEach(ev => window.addEventListener(ev, refit));
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") refit(); });
+document.addEventListener("focusout", () => setTimeout(fitScreen, 300));
+if (window.visualViewport) visualViewport.addEventListener("resize", refit);
+refit();
+
 /* ---------- updates ---------- */
 let updateShown = false;
 async function applyUpdate(){
@@ -1468,6 +1557,7 @@ document.addEventListener("click", e => {
     case "lineBoard": lineBoard(); break;
     case "lineMenu": lineMenu(); break;
     case "waitEdit": e.preventDefault(); waitEdit(id); break;
+    case "logEdit": logEdit(id); break;
     case "delLog": { const ent = S.log.find(x => x.id === id); if (!ent) break; S.log = S.log.filter(x => x !== ent); save(); toast("Ride deleted", "Undo", () => { S.log.push(ent); save(); }); break; }
     case "period": period = el.dataset.k; render(); break;
     case "sstab": sstab = el.dataset.k; $("scroller").scrollTop = 0; render(); break;
