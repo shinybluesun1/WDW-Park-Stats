@@ -18,12 +18,21 @@
 *{box-sizing:border-box}
 html,body{margin:0;background:var(--bg);color:var(--text);font-family:"Space Grotesk",system-ui,sans-serif;-webkit-tap-highlight-color:transparent}
 html,body{height:100%;overflow:hidden;overscroll-behavior:none}
-body{display:flex;flex-direction:column;height:100vh;height:100dvh;padding:0 env(safe-area-inset-right) 0 env(safe-area-inset-left);background:var(--bg)}
+body{position:fixed;inset:0;display:flex;flex-direction:column;padding:0 env(safe-area-inset-right) 0 env(safe-area-inset-left);background:var(--bg)}
 #scroller{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding-top:env(safe-area-inset-top);padding-bottom:24px;background:radial-gradient(1200px 500px at 50% -200px,#3a1d5c55,transparent),var(--bg)}
 header{padding:16px 16px 4px;text-align:center}
 h1{font-family:Monoton,cursive;font-weight:400;font-size:clamp(24px,8vw,34px);margin:0;background:linear-gradient(90deg,var(--accent),var(--gold),var(--accent2));-webkit-background-clip:text;background-clip:text;color:transparent}
 
 main{max-width:640px;margin:0 auto;padding:4px 14px}
+.ridebtn{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;touch-action:manipulation}
+.ridebtn.holding{border-color:var(--gold);box-shadow:0 0 0 2px var(--gold) inset;transition:box-shadow .55s}
+#lineBanner{max-width:640px;margin:6px auto 0;padding:0 14px}
+.lb{display:flex;align-items:center;gap:8px;background:linear-gradient(135deg,#3a2a10,#2b1640);border:1px solid var(--gold);border-radius:16px;padding:10px 10px 10px 14px}
+.lb .lbt{font-weight:700;font-size:15px;line-height:1.2}
+.lb .btn{flex:none}
+.waitrow{display:flex;justify-content:space-between;gap:10px;align-items:baseline}
+.pct{font-size:12px;padding:2px 7px;border-radius:99px;background:var(--panel2);white-space:nowrap}
+
 section{display:none}section.on{display:block}
 h2{font-size:13px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin:22px 4px 10px;font-weight:500;display:flex;justify-content:space-between;align-items:center;gap:8px}
 h3{font-size:16px;margin:0 0 8px}
@@ -128,6 +137,21 @@ nav button.on{color:var(--accent)}
 .opt .a{color:var(--muted);font-size:12px}
 .btnrow{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap}
 .btnrow .btn{flex:1}
+@media (min-width:700px){
+  main,#lineBanner{max-width:980px}
+  .rides{grid-template-columns:repeat(3,1fr)}
+  #statBody{display:grid;grid-template-columns:1fr 1fr;gap:0 18px;align-items:start}
+  #statBody>.sec{min-width:0}
+  #statBody>.sec.full,#statBody>.empty{grid-column:1/-1}
+  #jList{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  #jList .card+.card{margin-top:0}
+  #hotelBody .list,#setBody .list{column-gap:24px}
+  nav{justify-content:center}
+  nav button{max-width:150px}
+  #sheet{align-items:center}
+  .sheet-card{max-width:560px;border-radius:20px;border-bottom:1px solid var(--line);max-height:86vh}
+}
+@media (min-width:1000px){.rides{grid-template-columns:repeat(4,1fr)}}
 </style>
 </head>
 <body>
@@ -135,6 +159,7 @@ nav button.on{color:var(--accent)}
 <header>
   <h1>Park Stats</h1>
 </header>
+<div id="lineBanner" style="display:none"></div>
 
 <main>
   <section id="v-today" class="on">
@@ -211,7 +236,7 @@ nav button.on{color:var(--accent)}
 (() => {
 "use strict";
 const KEY = "parkStats.v2", OLD_KEY = "cosmicSongTracker.v1";
-const APP_VERSION = "2026-11-20.4";
+const APP_VERSION = "2026-11-20.7";
 const COLORS = ["#ff4fa3","#3de3ff","#ffd23f","#5dff9d","#b78cff","#ff8a3d","#4f8bff","#ff5f5f","#c6ff3d","#3dffd0","#ff9be0","#9aa7ff"];
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 const $ = id => document.getElementById(id);
@@ -229,7 +254,9 @@ const tLabel = t => new Date(t).toLocaleTimeString([], { hour: "numeric", minute
 
 /* ---------- defaults ---------- */
 function song(id, name, artist, i){ return { id, name, artist, retired: false, color: COLORS[i % COLORS.length] }; }
-const CATALOG = 2;
+const CATALOG = 3;
+const NO_LL = new Set(["carrousel", "astro", "granfiesta", "wdwrr", "wildlifetrain"]);
+const hasLL = r => !r.show && r.ll !== false;
 function defaultRides(){
   const R = (id, name, park, kind, songs) => ({ id, name, park, kind: kind || "plain", retired: false, songs: songs || [] });
   const SH = (id, name, park) => ({ id, name, park, kind: "plain", show: true, retired: false, songs: [] });
@@ -281,6 +308,7 @@ function defaultRides(){
     SH("gorilla","Gorilla Falls Exploration Trail","ak"), SH("maharajah","Maharajah Jungle Trek","ak"),
   ];
 }
+const withLL = list => list.map(r => r.show ? r : Object.assign(r, { ll: !NO_LL.has(r.id) }));
 function defaults(){
   const parks = [
     { id: "mk", name: "Magic Kingdom", color: "#ff4fa3" },
@@ -288,7 +316,7 @@ function defaults(){
     { id: "hs", name: "Hollywood Studios", color: "#ffd23f" },
     { id: "ak", name: "Animal Kingdom", color: "#5dff9d" },
   ];
-  const rides = defaultRides();
+  const rides = withLL(defaultRides());
   return { v: 2, catalog: CATALOG, parks, rides, log: [], days: {}, passes: [], tickets: [], stays: [], journal: [], costMode: "pass" };
 }
 
@@ -297,10 +325,12 @@ function valid(o){ return o && o.v === 2 && Array.isArray(o.parks) && Array.isAr
 function normalize(o){
   o.days = o.days && typeof o.days === "object" ? o.days : {};
   if (!["pass","tickets","off"].includes(o.costMode)) o.costMode = "pass";
+  if (o.line && !(o.line.r && isFinite(o.line.s))) delete o.line;
   if (!o.features || typeof o.features !== "object") o.features = {};
+  if ((o.catalog || 1) < 3) o.rides.forEach(r => { if (r.ll === undefined && !r.show) r.ll = !NO_LL.has(r.id); });
   if ((o.catalog || 1) < CATALOG) {
     const have = new Set(o.rides.map(r => r.id)), parkIds = new Set(o.parks.map(p => p.id));
-    defaultRides().forEach(r => { if (!have.has(r.id) && parkIds.has(r.park)) o.rides.push(r); });
+    withLL(defaultRides()).forEach(r => { if (!have.has(r.id) && parkIds.has(r.park)) o.rides.push(r); });
     o.catalog = CATALOG; o._catalogAdded = true;
   }
   ["passes","tickets","stays","journal"].forEach(k => { if (!Array.isArray(o[k])) o[k] = []; });
@@ -317,6 +347,7 @@ try { navigator.storage && navigator.storage.persist && navigator.storage.persis
 /* ---------- lookups ---------- */
 const FEATURES = [
   ["visits","⏱️ Park arrive & leave times","Hours per park, cost per hour, typical arrival"],
+  ["waits","⏳ Standby wait times","Press and hold a ride to time your standby wait"],
   ["shows","🎭 Shows","Show buttons and show stats"],
   ["steps","👟 Steps","Daily step count and step stats"],
   ["songs","🎵 Song picking","Ask which song played on song rides"],
@@ -390,9 +421,9 @@ function openSheet(title, html){ $("sheetTitle").textContent = title; $("sheetBo
 function closeSheet(){ $("sheet").classList.remove("show"); $("sheetBody").innerHTML = ""; }
 $("sheet").addEventListener("click", e => { if (e.target.id === "sheet") closeSheet(); });
 
-function confirmBox(msg, label, fn){
-  const b = openSheet("Are you sure?", `<p class="note" style="font-size:15px;color:var(--text)">${esc(msg)}</p>
-    <div class="btnrow"><button class="btn" data-act="closeSheet">Cancel</button><button class="btn danger" id="cfOk">${esc(label)}</button></div>`);
+function confirmBox(msg, label, fn, keepLabel, title){
+  const b = openSheet(title || "Are you sure?", `<p class="note" style="font-size:15px;color:var(--text)">${esc(msg)}</p>
+    <div class="btnrow"><button class="btn" data-act="closeSheet">${esc(keepLabel || "Don't delete")}</button><button class="btn danger" id="cfOk">${esc(label)}</button></div>`);
   b.querySelector("#cfOk").onclick = () => { closeSheet(); fn(); };
 }
 /* fields: {k,label,type,value,options,placeholder,list,req} */
@@ -415,7 +446,7 @@ function openForm(title, fields, onSave, opts){
     if (missing) { body.querySelector(`[name="${missing.k}"]`).focus(); return; }
     if (onSave(vals) !== false) closeSheet();
   };
-  if (opts.onDelete) body.querySelector("#fDel").onclick = () => confirmBox(opts.deleteMsg || "Delete this?", "Delete", opts.onDelete);
+  if (opts.onDelete) body.querySelector("#fDel").onclick = () => confirmBox(opts.deleteMsg || "Delete this?", opts.confirmLabel || "Delete", opts.onDelete, opts.keepLabel, opts.confirmTitle);
   return body;
 }
 function chips(el, items, cur, act){
@@ -433,27 +464,116 @@ function addLog(rideId, extra){
   const now = new Date();
   const t = curDay === today() ? now.getTime() : pd(curDay).getTime() + (now.getHours() * 60 + now.getMinutes()) * 60000;
   const e = Object.assign({ id: uid(), t, d: curDay, r: rideId }, extra || {});
+  if (e.w) delete S.line;
   S.log.push(e); save();
   try { navigator.vibrate && navigator.vibrate(25); } catch (err) {}
   const r = ride(rideId), sg = e.song ? songOf(r, e.song) : null;
-  toast("Logged " + (sg ? sg.name : r.name) + (e.score != null ? " · " + num(e.score) : ""), "Undo", () => { S.log = S.log.filter(x => x.id !== e.id); save(); });
+  toast("Logged " + (sg ? sg.name : r.name) + (e.score != null ? " · " + num(e.score) : "") + (e.w ? " · ⏳ " + fmtMin(e.w.b) : ""), "Undo", () => { S.log = S.log.filter(x => x.id !== e.id); save(); });
 }
-function tapRide(id){
-  const r = ride(id);
+function tapRide(id, extra){
+  const r = ride(id); extra = extra || {};
   const kind = kindOf(r);
   if (kind === "song") {
     const songs = r.songs.filter(s => !s.retired);
     const body = openSheet(r.name, `<p class="note" style="margin:4px 0 0">Which song did you get?</p>` +
       songs.map(s => `<button class="opt" data-sid="${esc(s.id)}"><span class="dot" style="background:${s.color}"></span><span><div>${esc(s.name)}</div><div class="a">${esc(s.artist)}</div></span></button>`).join("") +
       `<button class="opt" data-sid="" style="justify-content:center;color:var(--muted)">Didn't catch it — just log the ride</button>`);
-    body.querySelectorAll(".opt").forEach(b => b.onclick = () => { closeSheet(); addLog(id, b.dataset.sid ? { song: b.dataset.sid } : {}); });
+    body.querySelectorAll(".opt").forEach(b => b.onclick = () => { closeSheet(); addLog(id, Object.assign({}, extra, b.dataset.sid ? { song: b.dataset.sid } : {})); });
   } else if (kind === "score") {
     const best = Math.max(0, ...S.log.filter(e => e.r === id && e.score != null).map(e => e.score));
     openForm(r.name + " score", [{ k: "score", label: "Your score" + (best ? " (best so far: " + num(best) + ")" : ""), type: "number", placeholder: "Leave blank if you didn't see it" }],
-      v => { const n = v.score === "" ? null : Math.round(+v.score); if (n != null && !isFinite(n)) return false; addLog(id, n != null ? { score: n } : {}); if (n && n > best && best) setTimeout(() => toast("🏆 New personal best!"), 600); },
+      v => { const n = v.score === "" ? null : Math.round(+v.score); if (n != null && !isFinite(n)) return false; addLog(id, Object.assign({}, extra, n != null ? { score: n } : {})); if (n && n > best && best) setTimeout(() => toast("🏆 New personal best!"), 600); },
       { saveLabel: "Log ride" });
-  } else addLog(id);
+  } else addLog(id, extra);
 }
+/* ---------- standby line timer ---------- */
+const fmtMin = m => m < 60 ? Math.round(m) + " min" : fmtH(m / 60);
+const clockStr = ms => { const t = Math.max(0, Math.floor(ms / 1000)), h = Math.floor(t / 3600), m = Math.floor(t % 3600 / 60), sec = t % 60; return (h ? h + ":" + pad(m) : m) + ":" + pad(sec); };
+function startLine(id){
+  const r = ride(id);
+  if (S.line) { confirmBox(`You're already timing ${ride(S.line.r).name}. Stop that timer and start ${r.name}?`, "Start new timer", () => { delete S.line; save(); startLine(id); }, "Keep current timer", "Switch lines?"); return; }
+  const prevW = S.log.filter(e => e.r === id && e.w && e.w.p).sort((a, b) => b.t - a.t)[0];
+  const lastP = prevW ? prevW.w.p : null, opts = [10, 15, 20, 30, 45, 60, 75, 90, 120];
+  const body = openSheet("⏳ Standby: " + r.name, `<p class="note" style="margin:4px 0 8px">What's the posted wait?</p>
+    <div class="chips" style="flex-wrap:wrap">${lastP && !opts.includes(lastP) ? `<button class="chip on" data-p="${lastP}">${lastP}</button>` : ""}${opts.map(n => `<button class="chip${n === lastP ? " on" : ""}" data-p="${n}">${n}</button>`).join("")}</div>
+    <div class="row" style="margin-top:10px"><input id="lpCustom" type="number" inputmode="numeric" placeholder="Other (minutes)"><button class="btn pri" id="lpGo" style="flex:none">Start</button></div>
+    <button class="opt" id="lpUnknown" style="justify-content:center;color:var(--muted)">Not sure — start without it</button>
+    <p class="note">${hasLL(r) ? "Tap <b>Merged</b> when you reach the merge point, where standby joins the Lightning Lane line. That's where Disney's posted time ends." : "Tap <b>Boarded</b> when you're in the boarding area."}</p>`);
+  const go = p => { closeSheet(); S.line = { r: id, s: Date.now(), p: p || null, m: null }; save(); toast("⏳ Timer started for " + r.name); };
+  body.querySelectorAll("[data-p]").forEach(c => c.onclick = () => go(+c.dataset.p));
+  body.querySelector("#lpGo").onclick = () => { const n = Math.round(+body.querySelector("#lpCustom").value); if (!n || n < 1) { body.querySelector("#lpCustom").focus(); return; } go(n); };
+  body.querySelector("#lpUnknown").onclick = () => go(null);
+}
+function renderLine(){
+  const el = $("lineBanner"), L = S.line;
+  if (!L || !F("waits")) { el.style.display = "none"; el.innerHTML = ""; return; }
+  el.style.display = "";
+  const ll = hasLL(ride(L.r));
+  el.innerHTML = `<div class="lb"><div class="grow"><div class="lbt">⏳ ${esc(ride(L.r).name)}</div><div class="t" id="lbClock"></div>
+    <div class="t" style="color:var(--gold);margin-top:2px">${ll ? "Tap <b>Merged</b> when you reach the merge point" : "Tap <b>Boarded</b> when you're in the boarding area"}</div></div>
+    <button class="btn sm pri" data-act="lineBoard">${hasLL(ride(L.r)) ? "Merged" : "Boarded"}</button><button class="x" data-act="lineMenu" aria-label="Timer options">⋯</button></div>`;
+  tickLine();
+}
+function tickLine(){
+  const L = S.line, c = document.getElementById("lbClock"); if (!L || !c) return;
+  c.textContent = clockStr(Date.now() - L.s) + " in line" + (L.p ? " · posted " + L.p : "");
+}
+setInterval(tickLine, 1000);
+function lineBoard(){
+  const L = S.line; if (!L) return;
+  const now = Date.now();
+  const w = { p: L.p, b: Math.max(0, Math.round((now - L.s) / 60000)), s: L.s, to: hasLL(ride(L.r)) ? "merge" : "board" };
+  const saveDay = curDay; curDay = ymd(new Date(L.s));
+  tapRide(L.r, { w, t: now, d: ymd(new Date(L.s)) });
+  curDay = saveDay;
+}
+function lineMenu(){
+  const L = S.line; if (!L) return;
+  const inLine = Math.round((Date.now() - L.s) / 60000);
+  openForm("⏳ " + ride(L.r).name, [
+    { k: "p", label: "Posted wait (minutes)", type: "number", value: L.p || "" },
+    { k: "mins", label: "Minutes in line so far (fix it if you started late)", type: "number", value: inLine },
+  ], v => {
+    const m = Math.max(0, Math.round(+v.mins || 0));
+    const shift = (Date.now() - m * 60000) - L.s;
+    L.s += shift;
+    L.p = v.p ? Math.round(+v.p) : null; save(); toast("Timer updated");
+  }, { focus: false, saveLabel: "Save changes", onDelete: () => { delete S.line; save(); toast("Timer stopped — nothing logged"); },
+    confirmTitle: "Stop the timer?", deleteMsg: `Stop timing ${ride(L.r).name}? The ride won't be logged.`, confirmLabel: "Stop timer", keepLabel: "Keep timing" });
+  const del = document.getElementById("fDel"); if (del) del.textContent = "Stop timer";
+}
+function waitEdit(id){
+  const e = S.log.find(x => x.id === id); if (!e) return;
+  const isNew = !e.w, to = e.w ? e.w.to : (hasLL(ride(e.r)) ? "merge" : "board");
+  openForm((isNew ? "⏳ Add wait for " : "⏳ Wait for ") + ride(e.r).name, [
+    { k: "p", label: "Posted wait (minutes)", type: "number", value: e.w && e.w.p ? e.w.p : "" },
+    { k: "b", label: to === "merge" ? "Actual minutes until you reached the merge (your best guess is fine)" : "Actual minutes until you were in the boarding area (your best guess is fine)", type: "number", value: e.w ? e.w.b : "", req: true },
+  ], v => {
+    const b = Math.max(0, Math.round(+v.b || 0));
+    e.w = Object.assign({ s: e.t - b * 60000, to }, e.w, { p: v.p ? Math.round(+v.p) : null, b }); save();
+    if (isNew) toast("⏳ Wait added");
+  }, { focus: isNew, saveLabel: isNew ? "Add wait" : "Save", onDelete: isNew ? null : () => { delete e.w; save(); toast("Wait time removed"); }, confirmTitle: "Remove the wait time?", deleteMsg: "Remove the wait time from this ride? The ride stays logged.", confirmLabel: "Remove wait", keepLabel: "Keep wait" });
+  const del = document.getElementById("fDel"); if (del) del.textContent = "Remove wait";
+}
+/* press & hold to start a standby timer */
+let holdTimer = null, held = false, holdXY = null;
+function cancelHold(){ clearTimeout(holdTimer); holdTimer = null; document.querySelectorAll(".ridebtn.holding").forEach(x => x.classList.remove("holding")); }
+document.addEventListener("pointerdown", e => {
+  held = false;
+  const b = e.target.closest(".ridebtn"); if (!b || !F("waits")) return;
+  const r = ride(b.dataset.id); if (r.show) return;
+  holdXY = [e.clientX, e.clientY]; b.classList.add("holding");
+  holdTimer = setTimeout(() => {
+    held = true; cancelHold();
+    if (curDay !== today()) { toast("Standby timers work on today only"); return; }
+    try { navigator.vibrate && navigator.vibrate(40); } catch (err) {}
+    startLine(b.dataset.id);
+  }, 550);
+});
+document.addEventListener("pointermove", e => { if (holdTimer && holdXY && Math.hypot(e.clientX - holdXY[0], e.clientY - holdXY[1]) > 10) cancelHold(); });
+document.addEventListener("pointerup", cancelHold);
+document.addEventListener("pointercancel", cancelHold);
+document.addEventListener("contextmenu", e => { if (e.target.closest(".ridebtn")) e.preventDefault(); });
 
 /* ---------- renderers ---------- */
 function renderToday(){
@@ -508,7 +628,7 @@ function renderToday(){
   $("dayList").innerHTML = entries.length ? entries.map(e => {
     const r = ride(e.r), sg = e.song ? songOf(r, e.song) : null;
     return `<div class="li"><span class="dot" style="background:${park(r.park).color}"></span><div class="grow"><div>${esc(r.name)}</div>
-      <div class="t">${tLabel(e.t)}${sg ? " · 🎵 " + esc(sg.name) : ""}${e.score != null ? " · 🎯 " + num(e.score) : ""}</div></div>
+      <div class="t">${tLabel(e.t)}${sg ? " · 🎵 " + esc(sg.name) : ""}${e.score != null ? " · 🎯 " + num(e.score) : ""}${e.w && F("waits") ? ` · <a href="#" data-act="waitEdit" data-id="${esc(e.id)}" style="color:var(--gold);text-decoration:none">⏳ ${e.w.p ? "posted " + e.w.p + " → " : ""}${fmtMin(e.w.b)}${e.w.to === "merge" ? " to merge" : ""} ✎</a>` : (!e.w && F("waits") && !r.show ? ` · <a href="#" data-act="waitEdit" data-id="${esc(e.id)}" style="color:var(--muted);text-decoration:none">+ add wait</a>` : "")}</div></div>
       <button class="x" data-act="delLog" data-id="${esc(e.id)}" aria-label="Delete">×</button></div>`;
   }).join("") : `<div class="empty">Nothing logged ${curDay === today() ? "yet today" : "this day"}.</div>`;
   const auto = entries.length > 0;
@@ -581,15 +701,17 @@ const STAT_TABS = [
   ["rides", "Rides", ["most", "checklist", "when", "overtime"]],
   ["parks", "Parks & time", ["bypark", "time"]],
   ["fun", "Scores & songs", ["scores", "songs"]],
+  ["waits", "Waits", ["waits"]],
 ];
 const STAT_SECTIONS = [
   ["compare", "📈 Compare to previous period", "Overview"], ["highlights", "⭐ Highlights", "Overview"],
   ["most", "🏅 Most done", "Rides"], ["checklist", "✅ Ride checklist", "Rides"], ["when", "🕐 When you ride", "Rides"], ["overtime", "📅 Rides over time", "Rides"],
   ["bypark", "🗺️ By park", "Parks & time"], ["time", "⏱️ Time per park", "Parks & time · needs arrive & leave times"],
   ["scores", "🎯 Scores", "Scores & songs · needs score entry"], ["songs", "🎵 Songs", "Scores & songs · needs song picking"],
+  ["waits", "⏳ Standby waits", "Waits · needs standby wait times"],
 ];
 const statOn = k => !(S.statsOff && S.statsOff[k]);
-const statAvail = k => statOn(k) && (k !== "time" || F("visits")) && (k !== "scores" || F("scores")) && (k !== "songs" || F("songs"));
+const statAvail = k => statOn(k) && (k !== "time" || F("visits")) && (k !== "scores" || F("scores")) && (k !== "songs" || F("songs")) && (k !== "waits" || F("waits"));
 function renderStats(){
   const cp = currentPass();
   const P = [["7d","7 days"],["30d","30 days"],["month","This month"],["year","This year"]].concat(cp && S.costMode === "pass" ? [["pass","Current pass"]] : []).concat([["all","All time"],["custom","Custom"]]);
@@ -767,7 +889,48 @@ function renderStats(){
     }
   }
 
+  // Standby waits
+  REPORT.waits = [];
+  if (F("waits")) {
+    const Wt = L.filter(e => e.w && e.w.b != null);
+    if (Wt.length) {
+      const act = e => e.w.b;
+      const acc = Wt.filter(e => e.w.p);
+      const totalMin = Wt.reduce((s2, e) => s2 + e.w.b, 0);
+      const avgPct = acc.length ? acc.reduce((s2, e) => s2 + (e.w.b - e.w.p) / e.w.p, 0) / acc.length : null;
+      const pctTxt = p => (p <= 0 ? Math.round(-p * 100) + "% shorter" : Math.round(p * 100) + "% longer");
+      const pctTag = p => `<span class="pct" style="color:${p <= 0 ? "var(--good)" : "#ff7a8a"}">${pctTxt(p)}</span>`;
+      const g = {}; Wt.forEach(e => (g[e.r] = g[e.r] || []).push(e));
+      const mean = arr => arr.reduce((s2, v) => s2 + v, 0) / arr.length;
+      const rows = Object.keys(g).map(id => { const es = g[id], ps = es.filter(e => e.w.p), ac = es.filter(e => e.w.p);
+        return { id, n: es.length, p: ps.length ? mean(ps.map(e => e.w.p)) : null, a: mean(es.map(act)), pct: ac.length ? mean(ac.map(e => (e.w.b - e.w.p) / e.w.p)) : null }; })
+        .sort((x, y) => y.n - x.n || y.a - x.a);
+      const byHr = {}; Wt.forEach(e => { const hh = new Date(e.w.s).getHours(); (byHr[hh] = byHr[hh] || []).push(act(e)); });
+      const hrs2 = Object.keys(byHr).map(Number).sort((x, y) => x - y);
+      const hl = h0 => h0 === 0 ? "12a" : h0 < 12 ? h0 + "a" : h0 === 12 ? "12p" : (h0 - 12) + "p";
+      const hmax = Math.max(1, ...hrs2.map(hh => mean(byHr[hh])));
+      const bestHr = hrs2.length > 1 ? hrs2.slice().sort((x, y) => mean(byHr[x]) - mean(byHr[y]))[0] : null;
+      const sorted2 = Wt.slice().sort((x, y) => act(x) - act(y)), shortest = sorted2[0], longest = sorted2[sorted2.length - 1];
+      h = `<h2>Standby waits</h2><div class="card"><div class="stats">
+          <div class="stat"><b>${Wt.length}</b><span>timed waits</span></div>
+          <div class="stat"><b>${fmtMin(totalMin)}</b><span>in standby lines</span></div>
+          <div class="stat"><b style="color:${avgPct == null ? "inherit" : avgPct <= 0 ? "var(--good)" : "#ff7a8a"}">${avgPct == null ? "–" : (avgPct <= 0 ? "−" : "+") + Math.round(Math.abs(avgPct) * 100) + "%"}</b><span>actual vs posted</span></div></div>
+        <p class="note" style="margin:10px 0 0">${avgPct == null ? "Enter the posted wait when you start a timer to compare against it." : "On average your actual wait was <b>" + pctTxt(avgPct) + "</b> than posted."} Lightning Lane rides are timed to the merge, the rest to boarding.</p></div>
+        <h2>By ride</h2><div class="card"><div class="list">${rows.map(rw => `<div class="li"><span class="dot" style="background:${park(ride(rw.id).park).color}"></span><div class="grow">
+          <div class="waitrow"><span>${esc(ride(rw.id).name)}</span>${rw.pct != null ? pctTag(rw.pct) : ""}</div>
+          <div class="t">${rw.p != null ? "posted " + fmtMin(rw.p) + " → " : ""}actual ${fmtMin(rw.a)} · ${rw.n} wait${rw.n === 1 ? "" : "s"}</div></div></div>`).join("")}</div></div>
+        ${hrs2.length > 1 ? `<h2>By time of day</h2><div class="card"><div class="t">Average actual wait by when you got in line${bestHr != null ? " · shortest around " + hl(bestHr) : ""}</div>
+          <div class="cols">${hrs2.map(hh => { const v = mean(byHr[hh]); return `<div class="c"><u>${Math.round(v)}</u><i style="height:${v / hmax * 80}%;background:var(--gold)"></i><em>${hl(hh)}</em></div>`; }).join("")}</div></div>` : ""}
+        <h2>Records</h2><div class="card"><div class="recs">
+          <div class="rec"><b>${fmtMin(act(shortest))}</b><span>shortest · ${esc(ride(shortest.r).name)}</span></div>
+          <div class="rec"><b>${fmtMin(act(longest))}</b><span>longest · ${esc(ride(longest.r).name)}</span></div></div></div>`;
+      SEC.waits = h; h = "";
+      REPORT.waits = rows.map(rw => ({ label: ride(rw.id).name, n: rw.a, color: park(ride(rw.id).park).color, right: (rw.p != null ? "posted " + Math.round(rw.p) + " → " : "") + Math.round(rw.a) + " min" + (rw.pct != null ? " (" + (rw.pct <= 0 ? "−" : "+") + Math.round(Math.abs(rw.pct) * 100) + "%)" : "") }));
+    }
+  }
+
   // hidden sections stay out of the share card too
+  if (!statOn("waits")) REPORT.waits = [];
   if (!statOn("highlights")) REPORT.recs = [];
   if (!statOn("most")) REPORT.top = [];
   if (!statOn("bypark")) REPORT.parks = [];
@@ -776,7 +939,8 @@ function renderStats(){
   if (!statOn("songs")) REPORT.songs = [];
 
   const want = (STAT_TABS.find(t => t[0] === stab) || STAT_TABS[0])[2];
-  h = want.filter(k => statAvail(k)).map(k => SEC[k] || "").join("");
+  const shownSecs = want.filter(k => statAvail(k) && SEC[k]);
+  h = shownSecs.map(k => `<div class="sec${shownSecs.length === 1 || k === "compare" || k === "overtime" ? " full" : ""}">${SEC[k]}</div>`).join("");
   if (!h.trim()) h = `<div class="card empty" style="margin-top:14px">Nothing to show here for this period.</div>`;
   $("statBody").innerHTML = h;
 }
@@ -888,11 +1052,12 @@ function stayForm(s){
     { k: "in", label: "Check-in", type: "date", value: s.in, req: true },
     { k: "out", label: "Check-out", type: "date", value: s.out, req: true },
     { k: "cost", label: "Total cost ($, optional)", type: "number", value: s.cost },
+    { k: "points", label: "DVC points (optional)", type: "number", value: s.points },
     { k: "rating", label: "Rating", type: "select", value: s.rating, options: [["", "No rating"], ["5", "★★★★★ Loved it"], ["4", "★★★★ Great"], ["3", "★★★ Fine"], ["2", "★★ Meh"], ["1", "★ Never again"]] },
     { k: "notes", label: "Notes (room, view, perks…)", type: "textarea", value: s.notes },
   ], v => {
     if (v.out <= v.in) { toast("Check-out must be after check-in"); return false; }
-    const o = { hotel: v.hotel, in: v.in, out: v.out, cost: v.cost ? +v.cost : "", rating: v.rating ? +v.rating : "", notes: v.notes };
+    const o = { hotel: v.hotel, in: v.in, out: v.out, cost: v.cost ? +v.cost : "", points: v.points ? Math.round(+v.points) : "", rating: v.rating ? +v.rating : "", notes: v.notes };
     if (isNew) S.stays.push(Object.assign({ id: uid() }, o)); else Object.assign(s, o);
     save(); toast(isNew ? "Stay added" : "Stay updated");
   }, { focus: isNew, extraHtml: `<datalist id="hotelList">${names.map(n => `<option value="${esc(n)}">`).join("")}</datalist>`, onDelete: isNew ? null : () => { S.stays = S.stays.filter(x => x !== s); save(); }, deleteMsg: "Delete this stay?" });
@@ -906,6 +1071,8 @@ function renderHotels(){
   const t = today(), upcoming = st.filter(s => s.in > t).sort((a, b) => a.in.localeCompare(b.in))[0];
   let h = `<div class="stats" style="margin-top:14px"><div class="stat"><b>${st.length}</b><span>stays</span></div><div class="stat"><b>${totalN}</b><span>nights</span></div>
     <div class="stat"><b>${paidN ? money(spent / paidN) : "–"}</b><span>avg / night</span></div></div>`;
+  const ptsStays = st.filter(s => +s.points > 0), pts = ptsStays.reduce((n, s) => n + (+s.points || 0), 0), ptsN = ptsStays.reduce((n, s) => n + nights(s), 0);
+  if (pts) h += `<div class="stats" style="margin-top:9px"><div class="stat"><b>${num(pts)}</b><span>DVC points</span></div><div class="stat"><b>${ptsN ? num(pts / ptsN) : "–"}</b><span>points / night</span></div><div class="stat"><b>${ptsStays.length}</b><span>stay${ptsStays.length === 1 ? "" : "s"} on points</span></div></div>`;
   if (upcoming) h += `<div class="card" style="margin-top:10px">🧳 Next stay: <b>${esc(upcoming.hotel)}</b> in ${daysBetween(t, upcoming.in)} days (${dLabel(upcoming.in)})</div>`;
   h += `<button class="btn pri wide" style="margin-top:12px" data-act="stayAdd">+ Add a stay</button>`;
   if (st.length) {
@@ -914,7 +1081,7 @@ function renderHotels(){
     h += `<h2>Nights by hotel</h2><div class="card">${bars(hs.map((k, i) => ({ label: esc(k) + (byH[k].r.length ? ` <span class="stars">${"★".repeat(Math.round(byH[k].r.reduce((s, v) => s + v, 0) / byH[k].r.length))}</span>` : ""), n: byH[k].n, color: COLORS[i % COLORS.length], right: byH[k].n + " night" + (byH[k].n === 1 ? "" : "s") + " · " + byH[k].stays + " stay" + (byH[k].stays === 1 ? "" : "s") })))}
       ${spent ? `<p class="note" style="margin:8px 0 0">Total spent on stays with a cost entered: ${money(spent)}</p>` : ""}</div>`;
     h += `<h2>All stays</h2><div class="card"><div class="list">${st.map(s => `<div class="li"><div class="grow"><div>${esc(s.hotel)} ${s.rating ? `<span class="stars">${"★".repeat(s.rating)}</span>` : ""}</div>
-      <div class="t">${dLabel(s.in, { month: "short", day: "numeric", year: "numeric" })} → ${dLabel(s.out, { month: "short", day: "numeric" })} · ${nights(s)} night${nights(s) === 1 ? "" : "s"}${s.cost ? " · " + money(+s.cost) : ""}</div>
+      <div class="t">${dLabel(s.in, { month: "short", day: "numeric", year: "numeric" })} → ${dLabel(s.out, { month: "short", day: "numeric" })} · ${nights(s)} night${nights(s) === 1 ? "" : "s"}${s.cost ? " · " + money(+s.cost) : ""}${+s.points ? " · " + num(+s.points) + " pts" : ""}</div>
       ${s.notes ? `<div class="t" style="margin-top:3px;white-space:pre-wrap">${esc(s.notes)}</div>` : ""}</div><button class="btn sm" data-act="stayEdit" data-id="${esc(s.id)}">Edit</button></div>`).join("")}</div></div>`;
   }
   $("hotelBody").innerHTML = h;
@@ -976,9 +1143,10 @@ function rideForm(r){
     { k: "name", label: "Ride name", value: r.name, req: true },
     { k: "park", label: "Park", type: "select", value: r.park, options: parkOptions() },
     { k: "type", label: "Type", type: "select", value: r.show ? "show" : "ride", options: [["ride", "🎢 Ride"], ["show", "🎭 Show / walk-through"]] },
+    { k: "ll", label: "Has Lightning Lane? (standby timer stops at the merge if yes, at boarding if no)", type: "select", value: r.ll === false ? "no" : "yes", options: [["yes", "Yes — stop timer at the merge"], ["no", "No — stop timer at boarding"]] },
     { k: "kind", label: "When logging", type: "select", value: r.kind, options: [["plain", "Just count it"], ["song", "🎵 Pick which song played"], ["score", "🎯 Enter a score"]] },
   ].concat(isNew ? [] : [{ k: "retired", label: "Status", type: "select", value: r.retired ? "1" : "", options: [["", "Active"], ["1", "Retired (hidden from log buttons)"]] }]), v => {
-    const o = { name: v.name, park: v.park, kind: v.kind, show: v.type === "show" };
+    const o = { name: v.name, park: v.park, kind: v.kind, show: v.type === "show", ll: v.ll !== "no" };
     if (!isNew) o.retired = v.retired === "1";
     if (isNew) { const nr = Object.assign({ id: uid(), retired: false, songs: [] }, o); S.rides.push(nr); save(); if (nr.kind === "song") setTimeout(() => songsSheet(nr.id), 50); }
     else { Object.assign(r, o); save(); }
@@ -1084,10 +1252,10 @@ function reportRange(){
   const o = { month: "short", day: "numeric", year: "numeric" };
   return a === b ? dLabel(a, o) : dLabel(a, o) + " – " + dLabel(b, o);
 }
-const SHARE_PARTS = [["tiles","📊 Totals"],["highlights","⭐ Highlights"],["most","🏅 Most done"],["bypark","🗺️ By park"],["time","⏱️ Time per park"],["scores","🎯 Scores"],["songs","🎵 Songs"]];
+const SHARE_PARTS = [["tiles","📊 Totals"],["highlights","⭐ Highlights"],["most","🏅 Most done"],["bypark","🗺️ By park"],["time","⏱️ Time per park"],["scores","🎯 Scores"],["songs","🎵 Songs"],["waits","⏳ Waits"]];
 let shareSel = null;
 function shareAvail(){
-  const R = REPORT, has = { tiles: R.tiles.length, highlights: R.recs.length, most: R.top.length, bypark: R.parks.length, time: (R.time || []).length, scores: R.scores.length, songs: R.songs.length };
+  const R = REPORT, has = { tiles: R.tiles.length, highlights: R.recs.length, most: R.top.length, bypark: R.parks.length, time: (R.time || []).length, scores: R.scores.length, songs: R.songs.length, waits: (R.waits || []).length };
   return SHARE_PARTS.filter(([k]) => has[k]);
 }
 async function drawReport(sel){
@@ -1095,7 +1263,7 @@ async function drawReport(sel){
   const R = Object.assign({}, REPORT), W = 1080, P = 60, MAXH = 9000;
   if (sel) {
     if (!sel.tiles) R.tiles = []; if (!sel.highlights) R.recs = []; if (!sel.most) R.top = []; if (!sel.bypark) R.parks = [];
-    if (!sel.time) R.time = []; if (!sel.scores) R.scores = []; if (!sel.songs) R.songs = [];
+    if (!sel.time) R.time = []; if (!sel.scores) R.scores = []; if (!sel.songs) R.songs = []; if (!sel.waits) R.waits = [];
   }
   const c = document.createElement("canvas"); c.width = W; c.height = MAXH;
   const x = c.getContext("2d");
@@ -1166,6 +1334,7 @@ async function drawReport(sel){
     });
   }
   R.songs.forEach(sg => { section(sg.name + " songs"); barList(sg.items, sg.total); });
+  if (R.waits && R.waits.length) { section("Standby waits"); barList(R.waits); }
   // footer
   y += 30; x.fillStyle = "#2e2950"; x.fillRect(P, y, W - 2 * P, 2); y += 50;
   x.textAlign = "center"; x.font = f(400, 24); x.fillStyle = "#a59fc4";
@@ -1277,6 +1446,7 @@ function render(){
   $("navJournal").style.display = F("journal") ? "" : "none";
   if ((tab === "hotels" && !F("hotels")) || (tab === "journal" && !F("journal"))) tab = "today";
   document.querySelectorAll("main section").forEach(s => s.classList.toggle("on", s.id === "v-" + tab));
+  renderLine();
   if (tab === "today") renderToday();
   else if (tab === "stats") renderStats();
   else if (tab === "pass") (S.costMode === "tickets" ? renderTickets : renderPass)();
@@ -1294,7 +1464,10 @@ document.addEventListener("click", e => {
     case "closeSheet": closeSheet(); break;
     case "day": curDay = addDays(curDay, +el.dataset.n); render(); break;
     case "park": curPark = el.dataset.k; try { localStorage.setItem(KEY + ".park", curPark); } catch (err) {} render(); break;
-    case "ride": tapRide(id); break;
+    case "ride": if (held) { held = false; break; } tapRide(id); break;
+    case "lineBoard": lineBoard(); break;
+    case "lineMenu": lineMenu(); break;
+    case "waitEdit": e.preventDefault(); waitEdit(id); break;
     case "delLog": { const ent = S.log.find(x => x.id === id); if (!ent) break; S.log = S.log.filter(x => x !== ent); save(); toast("Ride deleted", "Undo", () => { S.log.push(ent); save(); }); break; }
     case "period": period = el.dataset.k; render(); break;
     case "sstab": sstab = el.dataset.k; $("scroller").scrollTop = 0; render(); break;
@@ -1331,7 +1504,7 @@ document.addEventListener("click", e => {
     case "copy": doCopy(); break;
     case "import": $("fileIn").click(); break;
     case "pasteImport": importText($("pasteIn").value); break;
-    case "wipe": confirmBox("Erase every ride, day, pass, ticket, stay and journal entry? Export a backup first if you might want them back.", "Erase everything", () => { S = defaults(); save(); toast("All data erased"); }); break;
+    case "wipe": confirmBox("Erase every ride, day, pass, ticket, stay and journal entry? Export a backup first if you might want them back.", "Erase everything", () => { S = defaults(); save(); toast("All data erased"); }, "Keep my data", "Erase all data?"); break;
   }
 });
 $("fileIn").onchange = async e => { const f = e.target.files[0]; e.target.value = ""; if (f) importText(await f.text()); };
