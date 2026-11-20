@@ -206,6 +206,7 @@ nav button.on{color:var(--accent)}
 (() => {
 "use strict";
 const KEY = "parkStats.v2", OLD_KEY = "cosmicSongTracker.v1";
+const APP_VERSION = "2026-11-20.2";
 const COLORS = ["#ff4fa3","#3de3ff","#ffd23f","#5dff9d","#b78cff","#ff8a3d","#4f8bff","#ff5f5f","#c6ff3d","#3dffd0","#ff9be0","#9aa7ff"];
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 const $ = id => document.getElementById(id);
@@ -893,6 +894,7 @@ function renderSettings(){
     <div class="btnrow" style="margin-top:4px"><button class="btn" data-act="export">Export</button><button class="btn" data-act="import">Import</button><button class="btn" data-act="copy">Copy text</button></div>
     <details style="margin-top:12px"><summary class="note">Or paste backup text</summary><textarea id="pasteIn" placeholder="Paste backup text here" style="margin-top:8px;font:12px ui-monospace,monospace"></textarea><button class="btn sm" style="margin-top:8px" data-act="pasteImport">Import pasted text</button></details>
     <p class="note" style="margin-bottom:0">${S.log.length} rides · ${Object.keys(S.days).length} days · ${S.passes.length} passes · ${S.tickets.length} tickets · ${S.stays.length} stays · ${S.journal.length} moments</p></div>`;
+  h += `<h2>App</h2><div class="card"><div class="row"><div class="grow"><div>Version ${APP_VERSION}</div><div class="t">The app checks for updates each time you open it.</div></div><button class="btn sm" style="flex:none" data-act="checkUpdate">Check for updates</button></div></div>`;
   h += `<h2>Danger zone</h2><div class="card"><button class="btn danger" data-act="wipe">Erase all data</button></div>`;
   $("setBody").innerHTML = h;
 }
@@ -1134,6 +1136,27 @@ async function shareStats(){
   };
 }
 
+/* ---------- updates ---------- */
+let updateShown = false;
+async function applyUpdate(){
+  toast("Updating…");
+  try { await fetch(location.href.split("#")[0], { cache: "reload" }); } catch (e) {}
+  location.reload();
+}
+async function checkForUpdate(manual){
+  try {
+    const r = await fetch(location.pathname + "?check=" + Date.now(), { cache: "no-store" });
+    if (!r.ok) throw 0;
+    const m = /APP_VERSION = "([^"]+)"/.exec(await r.text());
+    if (m && m[1] !== APP_VERSION) {
+      if (manual) { applyUpdate(); return; }
+      if (!updateShown) { updateShown = true; toast("✨ A new version is ready", "Update", applyUpdate); setTimeout(() => { updateShown = false; }, 5000); }
+    } else if (manual) toast("You're on the latest version");
+  } catch (e) { if (manual) toast("Couldn't check — are you online?"); }
+}
+setTimeout(() => checkForUpdate(false), 1500);
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") checkForUpdate(false); });
+
 /* ---------- render all ---------- */
 function render(){
   document.querySelectorAll("nav button").forEach(b => b.classList.toggle("on", b.dataset.v === tab));
@@ -1170,6 +1193,7 @@ document.addEventListener("click", e => {
     case "toggleAll": showAllRides = !showAllRides; render(); break;
     case "rideInfo": rideInfo(id); break;
     case "shareStats": shareStats(); break;
+    case "checkUpdate": checkForUpdate(true); break;
     case "passAdd": passForm(); break;
     case "ticketAdd": ticketForm(); break;
     case "visitAdd": visitForm(); break;
